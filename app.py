@@ -4,6 +4,7 @@ import pandas as pd
 import datetime
 import unicodedata
 import os
+from streamlit_gsheets import GSheetsConnection
 
 from correcoes_nomes import nomes_cursos_substituicoes
 from streamlit import config as _config
@@ -38,113 +39,49 @@ def calcular_chm(tipo_curso, tipo_oferta, nome_curso, chc, chmc):
         return chmc
 
 
-
-@st.cache_data
+# Função carregar_dados ATUALIZADA
+@st.cache_data(ttl=600) # ttl=600 limpa o cache a cada 10 min para atualizar dados se mudar na planilha
 def carregar_dados():
-    folder_path = 'data'
+    # Cria a conexão usando os segredos que configuramos
+    conn = st.connection("gsheets", type=GSheetsConnection)
     
-    # Verifica se a pasta data existe
-    if not os.path.exists(folder_path):
-        st.error(f"A pasta '{folder_path}' não foi encontrada.")
-        return pd.DataFrame()
-
-    # Lista todos os arquivos .xlsx na pasta
-    arquivos = [f for f in os.listdir(folder_path) if f.endswith('.xlsx')]
-
-    if not arquivos:
-        st.error("Nenhum arquivo .xlsx encontrado na pasta 'data'.")
-        return pd.DataFrame()
-
-    for arquivo in arquivos:
-        file_path = os.path.join(folder_path, arquivo)
+    # Lê os dados da planilha
+    # header=2 equivale ao skiprows=2 (considera que o cabeçalho real está na linha 3 do Sheets - índice 2)
+    df = conn.read(header=2)
+    
+    # --- AQUI ENTRA SEU BLOCO DE LIMPEZA E PADRONIZAÇÃO (Aquele código novo) ---
+    if 'Nome do curso' in df.columns:
+        df = df[df['Nome do curso'].notnull()]
         
-        try:
-            # Carrega o objeto Excel sem ler os dados ainda (metadados)
-            xls = pd.ExcelFile(file_path)
+        siglas_alvo = [
+            "DIC", "DTC", "CHC", "CHMC", "CHM", "PC", 
+            "QTDC", "CHMD", "CHA", "FECH", 
+            "DIP", "DFP", "QTM1P", "DACP", 
+            "FEDA", "FECHDA", "MECHDA", "MP", "BA", "MT"
+        ]
+        
+        novos_nomes = {}
+        for col in df.columns:
+            primeiro_token = str(col).strip().split()[0]
+            primeiro_token_limpo = primeiro_token.strip()
+            eh_sigla = any(primeiro_token_limpo.startswith(sigla) for sigla in siglas_alvo)
             
-            # Itera sobre todas as abas (planilhas) do arquivo
-            for nome_aba in xls.sheet_names:
-                try:
-                    # Lê apenas as primeiras linhas da aba atual para verificar o cabeçalho
-                    # header=None para não assumir que a linha 0 é o cabeçalho
-                    df_preview = pd.read_excel(xls, sheet_name=nome_aba, header=None, nrows=10)
-                    
-                    header_row_index = -1
-                    
-                    # Varre as linhas iniciais procurando a assinatura das colunas
-                    for idx, row in df_preview.iterrows():
-                        # Converte a linha para string maiúscula para facilitar a busca
-                        row_str = row.astype(str).str.cat(sep=' ').upper()
-                        
-                        # VERIFICAÇÃO DE ASSINATURA:
-                        # Verifica se colunas fundamentais estão presentes nesta linha.
-                        if "INSTITUIÇÃO" in row_str and "NOME DO CURSO" in row_str and "NOME DO CICLO" in row_str:
-                            header_row_index = idx
-                            break
-                    
-                    # Se encontrou o cabeçalho nesta aba, carrega ela por completo
-                    if header_row_index != -1:
-                        # Lê a aba correta pulando as linhas acima do cabeçalho
-                        df = pd.read_excel(xls, sheet_name=nome_aba, skiprows=header_row_index)
-                        
-                        # Limpeza e Padronização
-                        if 'Nome do curso' in df.columns:
-                            # Remove linhas que não são dados (rodapés ou linhas vazias)
-                            df = df[df['Nome do curso'].notnull()]
+            if eh_sigla:
+                novos_nomes[col] = primeiro_token_limpo
+            else:
+                novos_nomes[col] = ' '.join(str(col).split())
 
-                            # Lista de siglas
-                            siglas_alvo = [
-                                "DIC", "DTC", "CHC", "CHMC", "CHM", "PC", 
-                                "QTDC", "CHMD", "CHA", "FECH", 
-                                "DIP", "DFP", "QTM1P", "DACP", 
-                                "FEDA", "FECHDA", "MECHDA", "MP", "BA", "MT"
-                            ]
+        df = df.rename(columns=novos_nomes)
+        
+    return df
 
-                            novos_nomes = {}
-
-                            for col in df.columns:
-                                    # Pega a primeira 'palavra' da coluna (quebra por espaço ou quebra de linha)
-                                    # Ex: "DIC \n Data..." vira "DIC"
-                                    # Ex: "QTM1P \n Qtd..." vira "QTM1P"
-                                    primeiro_token = str(col).strip().split()[0]
-                                    
-                                    # Limpa caracteres estranhos do token se necessário (opcional)
-                                    primeiro_token_limpo = primeiro_token.strip()
-
-                                    # Verifica se o token começa com alguma das siglas alvo
-                                    # Usamos startswith para que "QTM1P" seja reconhecido como uma variação de "QTM"
-                                    eh_sigla = any(primeiro_token_limpo.startswith(sigla) for sigla in siglas_alvo)
-                                    
-                                    if eh_sigla:
-                                        # Se for sigla, o novo nome é apenas o código (ex: "DIC", "QTM1P")
-                                        novos_nomes[col] = primeiro_token_limpo
-                                    else:
-                                        # Se não for sigla (ex: "Nome do curso"), padroniza espaços
-                                        novos_nomes[col] = ' '.join(str(col).split())
-
-                            # Aplica a renomeação
-                            df = df.rename(columns=novos_nomes)
-                                                      
-                            
-                            # Opcional: Feedback visual no app para saber qual arquivo/aba foi carregado
-                            #st.success(f"Dados carregados de: {arquivo} | Aba: {nome_aba}")
-                            
-                            return df
-                            
-                except Exception as e_sheet:
-                    # Se der erro ao ler uma aba específica, tenta a próxima
-                    continue
-
-        except Exception as e_file:
-            # Se o arquivo estiver corrompido, tenta o próximo arquivo da pasta
-            continue
-
-    st.error("Não foi possível encontrar a tabela com as colunas esperadas em nenhuma aba dos arquivos .xlsx.")
-    return pd.DataFrame()
-
-
-
-df = carregar_dados()
+# --- No corpo principal do código ---
+try:
+    df = carregar_dados()
+except Exception as e:
+    st.error("Erro ao conectar com a Planilha do Google. Verifique os Secrets.")
+    st.exception(e)
+    st.stop()
 
 st.markdown("""
     <style>         
@@ -213,6 +150,7 @@ if st.session_state["exibir_alerta"]:
 
 # Seção 1 - Selecione o Curso
 st.header("Curso")
+
 
 # Campus
 campus = st.selectbox("Campus:", df['Unidade de Ensino'].unique(), format_func=formatar_nome)

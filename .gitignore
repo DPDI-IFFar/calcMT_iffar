@@ -6,6 +6,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
 # Distribuição / Empacotamento
 build/
 dist/
@@ -24,9 +25,7 @@ ENV/
 # ---------------------------------------------------
 # STREAMLIT
 # ---------------------------------------------------
-# CRÍTICO: Nunca suba suas senhas/chaves de API
 .streamlit/secrets.toml
-
 # Opcional: Ignorar config local se cada dev tiver a sua
 # .streamlit/config.toml
 
