@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import datetime
 import unicodedata
+import os
 
 from correcoes_nomes import nomes_cursos_substituicoes
 from streamlit import config as _config
@@ -36,12 +37,83 @@ def calcular_chm(tipo_curso, tipo_oferta, nome_curso, chc, chmc):
     else:
         return chmc
 
-# Carrega dados da planilha
+
+
 @st.cache_data
 def carregar_dados():
-    df = pd.read_csv("data/4ª Fase - Conferência matrículas totais 2025 IFFARROUPILHA.csv", sep=';', encoding='utf-8', skiprows=2)
-    df = df[df['Nome do curso'].notnull()]  # Remove linhas vazias
-    return df
+    folder_path = 'data'
+    
+    # Verifica se a pasta data existe
+    if not os.path.exists(folder_path):
+        st.error(f"A pasta '{folder_path}' não foi encontrada.")
+        return pd.DataFrame()
+
+    # Lista todos os arquivos .xlsx na pasta
+    arquivos = [f for f in os.listdir(folder_path) if f.endswith('.xlsx')]
+
+    if not arquivos:
+        st.error("Nenhum arquivo .xlsx encontrado na pasta 'data'.")
+        return pd.DataFrame()
+
+    for arquivo in arquivos:
+        file_path = os.path.join(folder_path, arquivo)
+        
+        try:
+            # Carrega o objeto Excel sem ler os dados ainda (metadados)
+            xls = pd.ExcelFile(file_path)
+            
+            # Itera sobre todas as abas (planilhas) do arquivo
+            for nome_aba in xls.sheet_names:
+                try:
+                    # Lê apenas as primeiras linhas da aba atual para verificar o cabeçalho
+                    # header=None para não assumir que a linha 0 é o cabeçalho
+                    df_preview = pd.read_excel(xls, sheet_name=nome_aba, header=None, nrows=10)
+                    
+                    header_row_index = -1
+                    
+                    # Varre as linhas iniciais procurando a assinatura das colunas
+                    for idx, row in df_preview.iterrows():
+                        # Converte a linha para string maiúscula para facilitar a busca
+                        row_str = row.astype(str).str.cat(sep=' ').upper()
+                        
+                        # VERIFICAÇÃO DE ASSINATURA:
+                        # Verifica se colunas fundamentais estão presentes nesta linha.
+                        # Baseado na sua lista: "Instituição", "Nome do curso", "Ciclo da matrícula"
+                        if "INSTITUIÇÃO" in row_str and "NOME DO CURSO" in row_str and "NOME DO CICLO" in row_str:
+                            header_row_index = idx
+                            break
+                    
+                    # Se encontrou o cabeçalho nesta aba, carrega ela por completo
+                    if header_row_index != -1:
+                        # Lê a aba correta pulando as linhas acima do cabeçalho
+                        df = pd.read_excel(xls, sheet_name=nome_aba, skiprows=header_row_index)
+                        
+                        # Limpeza e Padronização
+                        if 'Nome do curso' in df.columns:
+                            # Remove linhas que não são dados (rodapés ou linhas vazias)
+                            df = df[df['Nome do curso'].notnull()]
+                            
+                            # Normaliza os nomes das colunas (remove quebras de linha e espaços extras)
+                            # Ex: "Tipo de  Financiamento" vira "Tipo de Financiamento"
+                            df.columns = [' '.join(str(c).split()) for c in df.columns]
+                            
+                            # Opcional: Feedback visual no app para saber qual arquivo/aba foi carregado
+                            st.success(f"Dados carregados de: {arquivo} | Aba: {nome_aba}")
+                            
+                            return df
+                            
+                except Exception as e_sheet:
+                    # Se der erro ao ler uma aba específica, tenta a próxima
+                    continue
+
+        except Exception as e_file:
+            # Se o arquivo estiver corrompido, tenta o próximo arquivo da pasta
+            continue
+
+    st.error("Não foi possível encontrar a tabela com as colunas esperadas em nenhuma aba dos arquivos .xlsx.")
+    return pd.DataFrame()
+
+
 
 df = carregar_dados()
 
@@ -118,8 +190,8 @@ campus = st.selectbox("Campus:", df['Unidade de Ensino'].unique(), format_func=f
 df_filtrado_campus = df[df['Unidade de Ensino'] == campus]
 
 # Tipo de Curso
-tipo_curso = st.selectbox("Tipo de Curso:", df_filtrado_campus['Tipo de \nCurso'].unique(), format_func=formatar_nome)
-df_filtrado_tipo = df_filtrado_campus[df_filtrado_campus['Tipo de \nCurso'] == tipo_curso]
+tipo_curso = st.selectbox("Tipo de Curso:", df_filtrado_campus['Tipo de Curso'].unique(), format_func=formatar_nome)
+df_filtrado_tipo = df_filtrado_campus[df_filtrado_campus['Tipo de Curso'] == tipo_curso]
 
 # Se for TÉCNICO → mostrar Tipo de Oferta
 if tipo_curso.upper() == "TECNICO":
@@ -134,8 +206,8 @@ if tipo_curso.upper() == "TECNICO":
     
     # Definir linha_curso
     linha_curso = df_filtrado_tipo_oferta[df_filtrado_tipo_oferta['Nome do curso'].apply(lambda x: formatar_nome(x)) == formatar_nome(nome_curso)].copy()
-    linha_curso['DIC \n Data de início de cliclo'] = pd.to_datetime(linha_curso['DIC \n Data de início de cliclo'], dayfirst=True, errors='coerce')
-    linha_curso = linha_curso.sort_values(by='DIC \n Data de início de cliclo', ascending=False).iloc[0]
+    linha_curso['DIC Data de início de cliclo'] = pd.to_datetime(linha_curso['DIC Data de início de cliclo'], dayfirst=True, errors='coerce')
+    linha_curso = linha_curso.sort_values(by='DIC Data de início de cliclo', ascending=False).iloc[0]
 
 else:
     # Para FIC → incluir "A DEFINIR"
@@ -148,20 +220,20 @@ else:
     # Definir linha_curso
     if nome_curso == "A DEFINIR":
         linha_curso = df_filtrado_tipo.copy()
-        linha_curso['DIC \n Data de início de cliclo'] = pd.to_datetime(linha_curso['DIC \n Data de início de cliclo'], dayfirst=True, errors='coerce')
-        linha_curso = linha_curso.sort_values(by='DIC \n Data de início de cliclo', ascending=False).iloc[0]
+        linha_curso['DIC Data de início de cliclo'] = pd.to_datetime(linha_curso['DIC Data de início de cliclo'], dayfirst=True, errors='coerce')
+        linha_curso = linha_curso.sort_values(by='DIC Data de início de cliclo', ascending=False).iloc[0]
     else:
         linha_curso = df_filtrado_tipo[df_filtrado_tipo['Nome do curso'].apply(lambda x: formatar_nome(x)) == formatar_nome(nome_curso)].copy()
-        linha_curso['DIC \n Data de início de cliclo'] = pd.to_datetime(linha_curso['DIC \n Data de início de cliclo'], dayfirst=True, errors='coerce')
-        linha_curso = linha_curso.sort_values(by='DIC \n Data de início de cliclo', ascending=False).iloc[0]
+        linha_curso['DIC Data de início de cliclo'] = pd.to_datetime(linha_curso['DIC Data de início de cliclo'], dayfirst=True, errors='coerce')
+        linha_curso = linha_curso.sort_values(by='DIC Data de início de cliclo', ascending=False).iloc[0]
 
 
 # Seção 2 - Parâmetros do ciclo
 st.header("Parâmetros do Ciclo")
 
 # Datas
-DIC = linha_curso['DIC \n Data de início de cliclo'].date() if not pd.isnull(linha_curso['DIC \n Data de início de cliclo']) else datetime.date.today()
-DTC_raw = pd.to_datetime(linha_curso['DTC \n Data prevista de término do ciclo'], dayfirst=True, errors='coerce')
+DIC = linha_curso['DIC Data de início de cliclo'].date() if not pd.isnull(linha_curso['DIC Data de início de cliclo']) else datetime.date.today()
+DTC_raw = pd.to_datetime(linha_curso['DTC Data prevista de término do ciclo'], dayfirst=True, errors='coerce')
 DTC = DTC_raw.date() if not pd.isnull(DTC_raw) else datetime.date.today()
 
 DIC = st.date_input("Data de Início do Ciclo:", DIC, format="DD/MM/YYYY")
@@ -171,12 +243,12 @@ if DTC <= DIC:
 
 
 # CHC
-chc = linha_curso['CHC \n Carga horária do ciclo']
+chc = linha_curso['CHC Carga horária do ciclo']
 chc = st.number_input("Carga Horária do Ciclo (CHC):", min_value=0, value=int(chc), step=10)
 
 # CHMC e PC
-chmc = linha_curso['CHMC\n Carga horária do catálogo do MEC']
-pc = linha_curso['PC \n Peso do curso']
+chmc = linha_curso['CHMC Carga horária do catálogo do MEC']
+pc = linha_curso['PC Peso do curso']
 pc = float(str(pc).replace(',', '.'))
 
 st.write(f"**PC (Peso do Curso):** {pc}")
@@ -198,7 +270,7 @@ DFP = datetime.date(ano_periodo, 12, 31)
 
 # Seção 4 - Matrículas e opções
 st.header("Matrículas e Opções")
-qtm_pre_preenchido = linha_curso['QTM1P \n Qtd. Matrículas em \n 2023']
+qtm_pre_preenchido = linha_curso['QTM1P Qtd. Matrículas em 2023']
 qtm_pre_preenchido = 0 if pd.isnull(qtm_pre_preenchido) else qtm_pre_preenchido
 
 #qtm = st.number_input("👥 Número de Matrículas Ativas no Período (QTM):", min_value=0, step=1)
