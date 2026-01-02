@@ -39,7 +39,7 @@ def calcular_chm(tipo_curso, tipo_oferta, nome_curso, chc, chmc):
 # Carrega dados da planilha
 @st.cache_data
 def carregar_dados():
-    df = pd.read_csv("4ª Fase - Conferência matrículas totais 2025 IFFARROUPILHA.csv", sep=';', encoding='utf-8', skiprows=2)
+    df = pd.read_csv("data/4ª Fase - Conferência matrículas totais 2025 IFFARROUPILHA.csv", sep=';', encoding='utf-8', skiprows=2)
     df = df[df['Nome do curso'].notnull()]  # Remove linhas vazias
     return df
 
