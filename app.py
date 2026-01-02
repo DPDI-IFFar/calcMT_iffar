@@ -76,7 +76,7 @@ def limpar_padronizar_dataframe(df):
         "DIC", "DTC", "CHC", "CHMC", "CHM", "PC", 
         "QTDC", "CHMD", "CHA", "FECH", 
         "DIP", "DFP", "QTM1P", "QTM", "DACP", 
-        "FEDA", "FECHDA", "MECHDA", "MP", "BA", "MT",
+        "FEDA", "FECHDA", "MECHDA", "MP", "BA", "MT","Apto"
     ]
     
     novos_nomes = {}
@@ -241,14 +241,39 @@ def exibir_calculadora_core(dados_linha=None):
             MT = CMTD25
             
 
-        st.markdown(f"""
-        <div style="border: 2px solid #17882c; border-radius: 10px; background-color: #e9f7ec; padding: 20px; text-align: center; margin: 20px 0;">
-            <span style="font-size: 2.5em; font-weight: 800; color: #17882c;">MT: {MT:.2f}</span>
-            <br><span style="color: #17882c; font-weight: 600;">Matrículas Totais</span>
-        </div>
-        """, unsafe_allow_html=True)
+        #st.markdown(f"""
+        #<div style="border: 2px solid #17882c; border-radius: 10px; background-color: #e9f7ec; padding: 20px; text-align: center; margin: 20px 0;">
+        #    <span style="font-size: 2.5em; font-weight: 800; color: #17882c;">MT: {MT:.2f}</span>
+        #    <br><span style="color: #17882c; font-weight: 600;">Matrículas Totais</span>
+        #</div>
+        #""", unsafe_allow_html=True)
+
+        # --- NOVA VERIFICAÇÃO: APTO PARA MATRIZ ---
+        dados_linha
+        raw_apto = get_val(dados_linha, 'Apto', "SIM")
+        is_jubilado = str(raw_apto).strip().upper() == "NÃO"
+
+        if is_jubilado:
+            MT = 0 # Zera a matrícula total
+            
+            # Exibe caixa VERMELHA de erro
+            st.markdown(f"""
+            <div style="border: 2px solid #d32f2f; border-radius: 10px; background-color: #fdecea; padding: 20px; text-align: center; margin: 20px 0;">
+                <span style="font-size: 2.5em; font-weight: 800; color: #d32f2f;">0,00</span>
+                <br><span style="color: #d32f2f; font-weight: 600;">Ciclo jubilado! (mais de três anos após data prevista de término do ciclo)</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        else:
+            # Exibe caixa VERDE normal (se não for jubilado)
+            st.markdown(f"""
+            <div style="border: 2px solid #17882c; border-radius: 10px; background-color: #e9f7ec; padding: 20px; text-align: center; margin: 20px 0;">
+                <span style="font-size: 2.5em; font-weight: 800; color: #17882c;">{MT:.2f}</span>
+                <br><span style="color: #17882c; font-weight: 600;">Matrículas Totais</span>
+            </div>
+            """, unsafe_allow_html=True)
         
-        if qtm > 0: st.info(f"📌 Cada matrícula corresponde a **{MT / qtm:.2f}** matrícula(s) total(is).")
+            if qtm > 0: st.info(f"📌 Cada matrícula corresponde a **{MT / qtm:.2f}** matrícula(s) total(is).")
 
         with st.expander("Ver Detalhes do Cálculo"):
             st.write(f"**QTDC (Quantidade de dias do Ciclo):** {QTDC}")
