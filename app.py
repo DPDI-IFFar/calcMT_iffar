@@ -78,7 +78,6 @@ def carregar_dados():
                         
                         # VERIFICAÇÃO DE ASSINATURA:
                         # Verifica se colunas fundamentais estão presentes nesta linha.
-                        # Baseado na sua lista: "Instituição", "Nome do curso", "Ciclo da matrícula"
                         if "INSTITUIÇÃO" in row_str and "NOME DO CURSO" in row_str and "NOME DO CICLO" in row_str:
                             header_row_index = idx
                             break
@@ -92,13 +91,43 @@ def carregar_dados():
                         if 'Nome do curso' in df.columns:
                             # Remove linhas que não são dados (rodapés ou linhas vazias)
                             df = df[df['Nome do curso'].notnull()]
-                            
-                            # Normaliza os nomes das colunas (remove quebras de linha e espaços extras)
-                            # Ex: "Tipo de  Financiamento" vira "Tipo de Financiamento"
-                            df.columns = [' '.join(str(c).split()) for c in df.columns]
+
+                            # Lista de siglas
+                            siglas_alvo = [
+                                "DIC", "DTC", "CHC", "CHMC", "CHM", "PC", 
+                                "QTDC", "CHMD", "CHA", "FECH", 
+                                "DIP", "DFP", "QTM1P", "DACP", 
+                                "FEDA", "FECHDA", "MECHDA", "MP", "BA", "MT"
+                            ]
+
+                            novos_nomes = {}
+
+                            for col in df.columns:
+                                    # Pega a primeira 'palavra' da coluna (quebra por espaço ou quebra de linha)
+                                    # Ex: "DIC \n Data..." vira "DIC"
+                                    # Ex: "QTM1P \n Qtd..." vira "QTM1P"
+                                    primeiro_token = str(col).strip().split()[0]
+                                    
+                                    # Limpa caracteres estranhos do token se necessário (opcional)
+                                    primeiro_token_limpo = primeiro_token.strip()
+
+                                    # Verifica se o token começa com alguma das siglas alvo
+                                    # Usamos startswith para que "QTM1P" seja reconhecido como uma variação de "QTM"
+                                    eh_sigla = any(primeiro_token_limpo.startswith(sigla) for sigla in siglas_alvo)
+                                    
+                                    if eh_sigla:
+                                        # Se for sigla, o novo nome é apenas o código (ex: "DIC", "QTM1P")
+                                        novos_nomes[col] = primeiro_token_limpo
+                                    else:
+                                        # Se não for sigla (ex: "Nome do curso"), padroniza espaços
+                                        novos_nomes[col] = ' '.join(str(col).split())
+
+                            # Aplica a renomeação
+                            df = df.rename(columns=novos_nomes)
+                                                      
                             
                             # Opcional: Feedback visual no app para saber qual arquivo/aba foi carregado
-                            st.success(f"Dados carregados de: {arquivo} | Aba: {nome_aba}")
+                            #st.success(f"Dados carregados de: {arquivo} | Aba: {nome_aba}")
                             
                             return df
                             
@@ -204,10 +233,11 @@ if tipo_curso.upper() == "TECNICO":
     nome_curso_options = df_filtrado_tipo_oferta['Nome do curso'].unique().tolist()
     nome_curso = st.selectbox("Nome do Curso:", nome_curso_options, format_func=lambda x: formatar_nome(x) if x != "A DEFINIR" else x)
     
+
     # Definir linha_curso
     linha_curso = df_filtrado_tipo_oferta[df_filtrado_tipo_oferta['Nome do curso'].apply(lambda x: formatar_nome(x)) == formatar_nome(nome_curso)].copy()
-    linha_curso['DIC Data de início de cliclo'] = pd.to_datetime(linha_curso['DIC Data de início de cliclo'], dayfirst=True, errors='coerce')
-    linha_curso = linha_curso.sort_values(by='DIC Data de início de cliclo', ascending=False).iloc[0]
+    linha_curso['DIC'] = pd.to_datetime(linha_curso['DIC'], dayfirst=True, errors='coerce')
+    linha_curso = linha_curso.sort_values(by='DIC', ascending=False).iloc[0]
 
 else:
     # Para FIC → incluir "A DEFINIR"
@@ -220,20 +250,20 @@ else:
     # Definir linha_curso
     if nome_curso == "A DEFINIR":
         linha_curso = df_filtrado_tipo.copy()
-        linha_curso['DIC Data de início de cliclo'] = pd.to_datetime(linha_curso['DIC Data de início de cliclo'], dayfirst=True, errors='coerce')
-        linha_curso = linha_curso.sort_values(by='DIC Data de início de cliclo', ascending=False).iloc[0]
+        linha_curso['DIC'] = pd.to_datetime(linha_curso['DIC'], dayfirst=True, errors='coerce')
+        linha_curso = linha_curso.sort_values(by='DIC', ascending=False).iloc[0]
     else:
         linha_curso = df_filtrado_tipo[df_filtrado_tipo['Nome do curso'].apply(lambda x: formatar_nome(x)) == formatar_nome(nome_curso)].copy()
-        linha_curso['DIC Data de início de cliclo'] = pd.to_datetime(linha_curso['DIC Data de início de cliclo'], dayfirst=True, errors='coerce')
-        linha_curso = linha_curso.sort_values(by='DIC Data de início de cliclo', ascending=False).iloc[0]
+        linha_curso['DIC'] = pd.to_datetime(linha_curso['DIC'], dayfirst=True, errors='coerce')
+        linha_curso = linha_curso.sort_values(by='DIC', ascending=False).iloc[0]
 
 
 # Seção 2 - Parâmetros do ciclo
 st.header("Parâmetros do Ciclo")
 
 # Datas
-DIC = linha_curso['DIC Data de início de cliclo'].date() if not pd.isnull(linha_curso['DIC Data de início de cliclo']) else datetime.date.today()
-DTC_raw = pd.to_datetime(linha_curso['DTC Data prevista de término do ciclo'], dayfirst=True, errors='coerce')
+DIC = linha_curso['DIC'].date() if not pd.isnull(linha_curso['DIC']) else datetime.date.today()
+DTC_raw = pd.to_datetime(linha_curso['DTC'], dayfirst=True, errors='coerce')
 DTC = DTC_raw.date() if not pd.isnull(DTC_raw) else datetime.date.today()
 
 DIC = st.date_input("Data de Início do Ciclo:", DIC, format="DD/MM/YYYY")
@@ -241,14 +271,13 @@ DTC = st.date_input("Data de Término do Ciclo:", DTC, format="DD/MM/YYYY")
 if DTC <= DIC:
     st.error("⚠️ A Data de Término do Ciclo deve ser posterior à Data de Início.")
 
-
 # CHC
-chc = linha_curso['CHC Carga horária do ciclo']
+chc = linha_curso['CHC']
 chc = st.number_input("Carga Horária do Ciclo (CHC):", min_value=0, value=int(chc), step=10)
 
 # CHMC e PC
-chmc = linha_curso['CHMC Carga horária do catálogo do MEC']
-pc = linha_curso['PC Peso do curso']
+chmc = linha_curso['CHMC']
+pc = linha_curso['PC']
 pc = float(str(pc).replace(',', '.'))
 
 st.write(f"**PC (Peso do Curso):** {pc}")
@@ -263,18 +292,18 @@ st.write(f"**CHM (Carga Horária para Matriz):** {chm}")
 # Seção 3 - Período de Análise
 st.header("Período de Análise")
 
-ano_periodo = st.selectbox("Ano do Período:", list(range(2020, 2031)), index=3)
+ano_periodo = st.selectbox("Ano do Período:", list(range(2020, 2031)), index=4)
 
 DIP = datetime.date(ano_periodo, 1, 1)
 DFP = datetime.date(ano_periodo, 12, 31)
 
 # Seção 4 - Matrículas e opções
 st.header("Matrículas e Opções")
-qtm_pre_preenchido = linha_curso['QTM1P Qtd. Matrículas em 2023']
+qtm_pre_preenchido = linha_curso['QTM1P']
 qtm_pre_preenchido = 0 if pd.isnull(qtm_pre_preenchido) else qtm_pre_preenchido
 
 #qtm = st.number_input("👥 Número de Matrículas Ativas no Período (QTM):", min_value=0, step=1)
-qtm = st.number_input("Número de Matrículas Ativas no Período (QTM):", min_value=0, step=1, value=int(qtm_pre_preenchido))
+qtm = st.number_input("Número de Matrículas Ativas no Período (QTM1P):", min_value=0, step=1, value=int(qtm_pre_preenchido))
 
 agropecuaria_default = linha_curso['Curso de Agropecuária'].strip().capitalize()
 agropecuaria = st.radio("Curso de Agropecuária?", ["Sim", "Não"], index=["Sim", "Não"].index(agropecuaria_default))
