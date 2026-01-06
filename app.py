@@ -472,29 +472,57 @@ st.write("") # Espaçamento
 if st.session_state['modo'] == 'iffar':
     st.markdown("## Matrículas do IFFarroupilha")
     st.markdown("##### Dados da PNP Ano Base 2024 que foram usados pela MDO 2026")
-    st.info("Clique e escolha o Campus, tipo de curso, nome do curso e qual ciclo deseja conferir os dados.")
+    st.info("Escolha o Campus, tipo de curso, nome do curso e qual ciclo deseja conferir os dados.")
     st.write("")
 
     try:
         df = carregar_dados_gsheets()
         
-        # Filtros organizados em colunas
+        # Cria 3 colunas para o fluxo: Campus -> Tipo -> Curso
         c1, c2 = st.columns(2)
-        with c1:
-            campus = st.selectbox("Campus", df['Unidade de Ensino'].unique(), format_func=formatar_nome)
-            df_c = df[df['Unidade de Ensino'] == campus]
-        with c2:
-            tipo = st.selectbox("Tipo de Curso", df_c['Tipo de Curso'].unique(), format_func=formatar_nome)
-            df_t = df_c[df_c['Tipo de Curso'] == tipo]
-        #with c3:
-        lista_cursos = df_t['Nome_Padronizado'].unique()
-        curso_sel = st.selectbox("Curso", lista_cursos)
-        df_final = df_t[df_t['Nome_Padronizado'] == curso_sel]
-
-        linha_selecionada = interface_selecao_ciclo(df_final)
         
-        if linha_selecionada is not None:
-            exibir_calculadora_core(linha_selecionada)
+        # --- 1. SELEÇÃO DO CAMPUS ---
+        with c1:
+            lista_campus = sorted(df['Unidade de Ensino'].unique().tolist())
+            # Adiciona opção vazia para forçar seleção
+            campus_sel = st.selectbox(
+                "1. Campus", 
+                options=[""] + lista_campus, 
+                format_func=lambda x: "Selecione..." if x == "" else formatar_nome(x)
+            )
+
+        # Só prossegue se um campus foi selecionado
+        if campus_sel:
+            df_c = df[df['Unidade de Ensino'] == campus_sel]
+            
+            # --- 2. SELEÇÃO DO TIPO DE CURSO ---
+            with c2:
+                lista_tipos = sorted(df_c['Tipo de Curso'].unique().tolist())
+                tipo_sel = st.selectbox(
+                    "2. Tipo de Curso", 
+                    options=[""] + lista_tipos,
+                    format_func=lambda x: "Selecione..." if x == "" else formatar_nome(x)
+                )
+            
+            # Só prossegue se um tipo foi selecionado
+            if tipo_sel:
+                df_t = df_c[df_c['Tipo de Curso'] == tipo_sel]
+                
+                lista_cursos = sorted(df_t['Nome_Padronizado'].unique().tolist())
+                curso_sel = st.selectbox(
+                    "3. Curso", 
+                    options=[""] + lista_cursos,
+                    format_func=lambda x: "Selecione..." if x == "" else x
+                )
+
+                # Só exibe o cálculo se o curso final foi selecionado
+                if curso_sel:
+                    df_final = df_t[df_t['Nome_Padronizado'] == curso_sel]
+                    
+                    linha_selecionada = interface_selecao_ciclo(df_final)
+                    
+                    if linha_selecionada is not None:
+                        exibir_calculadora_core(linha_selecionada)
 
     except Exception as e:
         st.error("Erro ao conectar com a base de dados (Google Sheets).")
