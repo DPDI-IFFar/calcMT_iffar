@@ -1,98 +1,99 @@
 # Calculadora de Matrícula Total - IFFar
 
-Esta ferramenta foi desenvolvida para apoiar o cálculo da **Matrícula Total** de cursos ofertados no IFFarroupilha, conforme metodologia estabelecida na **Portaria MEC nº 646/2022**.
-https://iffarcalcmatriculatotal.streamlit.app/
----
+Esta ferramenta é um software institucional desenvolvido para apoiar o cálculo e a conferência da **Matrícula Total** dos cursos ofertados no Instituto Federal Farroupilha, seguindo rigorosamente a metodologia estabelecida na **Portaria MEC nº 646/2022**.
 
-## Objetivo
+O projeto foi construído em Python utilizando a biblioteca Streamlit, garantindo agilidade na simulação de cenários e transparência nas fórmulas aplicadas.
+
+
+
+## 🔗 Acesso à Ferramenta
+
+A calculadora está disponível online e pode ser acessada através do link abaixo:
+
+👉 **[ACESSE A CALCULADORA AQUI](https://iffarcalcmatriculatotal.streamlit.app/)**
+
+
+
+## 🎯 Objetivo
 
 O projeto visa:
-- Facilitar o entendimento do cálculo da Matrícula Total pelos gestores do IFFarroupilha;
-- Simular cenários com diferentes parâmetros (carga horária, datas, tipo de financiamento, etc.);
-- Contribuir para a análise orçamentária e correção de inconsistências nos dados cadastrados no Sistec e consequentemente, na Plataforma Nilo Peçanha.
+- **Facilitar o entendimento** do cálculo da Matrícula Total pelos gestores e servidores do IFFarroupilha;
+- **Simular cenários** com diferentes parâmetros (carga horária, datas de ciclo, tipo de financiamento, evasão, etc.);
+- **Apoiar a análise orçamentária**, permitindo antever inconsistências nos dados cadastrados no Sistec antes do fechamento da Plataforma Nilo Peçanha (PNP).
 
----
 
-## Como funciona
 
-A calculadora segue quatro etapas principais:
+## ⚠️ Importante
 
-1. **Equalização**  
-   Ajusta o impacto dos cursos considerando duração do ciclo, carga horária e dias ativos no ano analisado.
+> **Natureza da Ferramenta:** > Os cálculos realizados por esta aplicação seguem as fórmulas da Portaria MEC nº 646/2022 e utilizam a lógica das planilhas da Fase 4 da Distribuição Orçamentária. No entanto, os resultados são **simulações**.  
+> Eles servem para conferência e planejamento, mas **não substituem os resultados oficiais** publicados pelo MEC ou pela Plataforma Nilo Peçanha, visto que as bases de dados oficiais podem sofrer alterações.
 
-2. **Ponderação**  
-   Aplica o peso do curso(definido na Portaria).
 
-3. **Bonificação (Agropecuária)**  
-   Adiciona 50% ao valor final se o curso for da área de Agropecuária.
 
-4. **Finalização da Matrícula Total (MT)**  
-   Ajusta o valor conforme modalidade presencial ou EaD, com regras específicas de financiamento.
+## 🔍 Como funciona a Metodologia
 
-> Todas as fórmulas utilizadas seguem a Portaria MEC nº 646/2022 e as fórmulas da planilha da Fase 4 da Distribuição Orçamentária, gentilmente disponibilizadas pela Pró-Reitoria de Administração do IFFarroupilha.
+A calculadora processa os dados seguindo quatro etapas lógicas principais:
 
----
+1.  **Equalização**
+    Ajusta o impacto dos cursos considerando a duração do ciclo (dias), a carga horária e os dias ativos no ano base analisado.
 
-## Estrutura do Projeto
+2.  **Ponderação**
+    Aplica o peso do curso conforme a tabela de eixos tecnológicos definida na Portaria.
 
-- `app.py` — Código principal com interface em Streamlit.
-- `correcoes_nomes.py` — Substituições padronizadas de nomes de cursos e campus.
-- `4ª Fase - Conferência matrículas totais 2025 IFFARROUPILHA.csv` — Planilha com os dados de base.
-- `README.md` — Este arquivo.
+3.  **Bonificação (Agropecuária)**
+    Adiciona 50% ao valor final da matrícula ponderada se o curso pertencer à área de Agropecuária.
 
----
+4.  **Finalização da Matrícula Total (MT)**
+    Ajusta o valor final conforme a modalidade (Presencial ou EaD) e a fonte de financiamento (Próprio ou Externo).
 
-## Tecnologias Utilizadas
 
-- [Python 3.10+](https://www.python.org/)
-- [Streamlit](https://streamlit.io/) para interface web
-- [Pandas](https://pandas.pydata.org/) para tratamento de dados
 
----
+## 🛠️ Estrutura e Tecnologias
 
-## Referência legal
+O projeto utiliza boas práticas de desenvolvimento de dados com a seguinte estrutura:
 
-Portaria MEC nº 646, de 25 de agosto de 2022  
-(Institui a Matriz de Distribuição Orçamentária da Rede Federal de EPCT)
+-   **Linguagem:** [Python 3.10+](https://www.python.org/)
+-   **Interface:** [Streamlit](https://streamlit.io/)
+-   **Manipulação de Dados:** [Pandas](https://pandas.pydata.org/)
+-   **Arquivos do Repositório:**
+    -   `app.py`: Código fonte da aplicação web.
+    -   `correcoes_nomes.py`: Dicionário para padronização de nomenclaturas (Campi e Cursos).
+    -   `dados/`: Planilhas base para carga de dados (ex: Fase 4).
 
----
 
-### 🧮 Passo a passo simplificado para calcular a Matrícula Total
 
-**Passo 1 – Descobrir a quantidade de dias no ciclo (QTDC)**
-Subtraia a data de início do ciclo (DIC) da data de término do ciclo (DTC) e adicione 1. Isso informa quantos dias o curso tem no total.
+## ⚖️ Referência Legal
 
-**Passo 2 – Calcular a carga horária média diária (CHMD)**
-Divida a carga horária do curso (CHM) pela quantidade de dias do ciclo (QTDC). Isso mostra quanto tempo de aula ocorre por dia, em média.
+* **Portaria MEC nº 646, de 25 de agosto de 2022:** Institui a metodologia para o cálculo dos indicadores de gestão das Instituições da Rede Federal de EPCT.
 
-**Passo 3 – Anualizar a carga horária (CHA)**
-Se o curso durar mais de um ano (QTDC > 365 dias), multiplique a média diária (CHMD) por 365. Se durar até 1 ano, use a carga horária total (CHM) diretamente.
 
-**Passo 4 – Calcular o fator de equalização da carga horária (FECH)**
-Compare a CHA com o padrão de 800 horas anuais: FECH = CHA ÷ 800.
 
-**Passo 5 – Verificar os dias ativos no ano analisado (DACP1 a DACP5)**
-Dependendo das datas do ciclo e do ano de referência, calcule quantos dias do ciclo estiveram ativos no ano analisado.
+## 🧮 Detalhamento do Cálculo (Passo a Passo)
 
-**Passo 6 – Calcular o fator de equalização de dias ativos (FEDA)**
-Divida os dias ativos (DACP) pela quantidade total de dias do ano (geralmente 365).
+Para fins de transparência, o algoritmo segue este fluxo:
 
-**Passo 7 – Calcular o fator combinado (FECHDA)**
-Multiplique o FECH pelo FEDA. Isso ajusta o impacto do curso de acordo com sua carga horária e com o tempo de funcionamento no ano.
+1.  **QTDC (Dias no Ciclo):** `(Data Término - Data Início) + 1`
+2.  **CHMD (Média Diária):** `Carga Horária Matriz / QTDC`
+3.  **CHA (Anualização):** Se `QTDC > 365`, então `CHMD * 365`; senão `Carga Horária Total`.
+4.  **FECH (Fator Carga Horária):** `CHA / 800`.
+5.  **DACP (Dias Ativos):** Cálculo dos dias em que o curso esteve ativo dentro do ano letivo analisado.
+6.  **FEDA (Fator Dias Ativos):** `Dias Ativos / 365`.
+7.  **FECHDA (Fator Combinado):** `FECH * FEDA`.
+8.  **MECHDA (Matrículas Equalizadas):** `FECHDA * Quantidade de Matrículas (QTM)`.
+9.  **MP (Matrícula Ponderada):** `MECHDA * Peso do Curso`.
+10. **BA (Bônus Agro):** Se Agropecuária, `MP * 0,5`.
+11. **MT (Matrícula Total):** `MP + BA` (com redutores aplicados para EaD se necessário).
 
-**Passo 8 – Calcular as Matrículas Equalizadas (MECHDA)**
-Multiplique o FECHDA pela quantidade de matrículas atendidas na PNP (QTM). Esse valor é a base do cálculo da Matrícula Total.
 
-**Passo 9 – Aplicar o peso do curso (MP)**
-Multiplique o número de matrículas equalizadas (MECHDA) pelo peso do curso (PC).
 
-**Passo 10 – Verificar se há bonificação (BA)**
-Se for um curso de Agropecuária, multiplique o valor de MP por 0,5 e adicione ao total.
+## Licença
 
-**Passo 11 – Calcular a Matrícula Total (MT)**
-Some as Matrículas Ponderadas (MP) com a Bonificação (BA). Esse é o valor final da MT para cursos presenciais.
+Este projeto é um software proprietário de **uso não comercial**, desenvolvido no âmbito do Instituto Federal Farroupilha.
 
-**Passo 12 – Ajustar para cursos EaD (se aplicável)**
+✔ Uso institucional, acadêmico e educacional permitido.  
+❌ Uso comercial, venda ou sublicenciamento **não permitido**.
 
-* Financiamento externo: MT = MP x 0,25
-* Financiamento próprio: MT = MP x 0,80
+
+<div align="center">
+    <b>Diretoria de Planejamento e Desenvolvimento Institucional - IFFarroupilha</b>
+</div>
