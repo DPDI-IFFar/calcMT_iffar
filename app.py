@@ -507,23 +507,99 @@ elif st.session_state['modo'] == 'excel':
     arq = st.file_uploader("Selecione o arquivo", type=["xlsx"])
     
     if arq:
-        df_up = carregar_dados_excel(arq)
-        if df_up is not None:
-            col_nome = 'Nome_Padronizado' if 'Nome_Padronizado' in df_up.columns else 'Nome do curso'
-            
-            if col_nome in df_up.columns:
-                lista = df_up[col_nome].unique()
-                curso_sel = st.selectbox("Selecione o Curso para Análise:", lista)
-                df_final = df_up[df_up[col_nome] == curso_sel]
-                
-                linha_selecionada = interface_selecao_ciclo(df_final)
-                if linha_selecionada is not None:
-                    exibir_calculadora_core(linha_selecionada)
-            else:
-                st.warning("⚠️ Coluna de nomes não identificada automaticamente.")
-                idx = st.number_input("Selecione o número da linha para analisar:", 0, len(df_up)-1)
-                exibir_calculadora_core(df_up.iloc[idx])
+        try:
+            df_up = carregar_dados_excel(arq)
 
+            if df_up is not None:
+                mapa_auxiliar = {
+                        'Unidade de Ensino': 'Campus',
+                        'Unidade': 'Campus',
+                        'Tipo Curso': 'Tipo de Curso'
+                    }
+                df_up = df_up.rename(columns=mapa_auxiliar)
+
+                cols_existentes = df_up.columns
+                
+                # Procura qual coluna é o NOME DO CURSO (mantendo a original)
+                col_nome_real = None
+                # Lista de tentativas comuns
+                tentativas = [c for c in cols_existentes if 'NOME' in str(c).upper() and 'CURSO' in str(c).upper()]
+                
+                if tentativas:
+                    col_nome_real = tentativas[0] # Pega a primeira correspondência (ex: "Nome do Curso", "Nome Curso")
+                elif 'Curso' in cols_existentes:
+                    col_nome_real = 'Curso'
+                
+                # Verifica as outras colunas de filtro
+                tem_campus = 'Campus' in cols_existentes
+                tem_tipo = 'Tipo de Curso' in cols_existentes
+
+                if col_nome_real:
+                    st.divider()
+                    st.markdown("#### 🔍 Filtros de Seleção")
+                    
+                    col_f1, col_f2, col_f3 = st.columns(3)
+
+                    # --- FILTRO 1: CAMPUS ---
+                    campus_sel = None
+                    with col_f1:
+                        if tem_campus:
+                            lista_campus = sorted(df_up['Campus'].astype(str).unique())
+                            campus_sel = st.selectbox("Campus", [""] + lista_campus)
+                        else:
+                            st.warning("Coluna 'Campus'/Unidade não identificada.")
+
+                    # --- FILTRO 2: TIPO DE CURSO ---
+                    tipo_sel = None
+                    with col_f2:
+                        if tem_tipo:
+                            # Filtra opções baseado no campus (se selecionado)
+                            df_temp = df_up[df_up['Campus'] == campus_sel] if campus_sel else df_up
+                            lista_tipos = sorted(df_temp['Tipo de Curso'].astype(str).unique())
+                            tipo_sel = st.selectbox("Tipo de Curso", [""] + lista_tipos)
+                        else:
+                            st.warning("Coluna 'Tipo de Curso' não identificada.")
+
+                    # --- FILTRO 3: NOME DO CURSO (USANDO COLUNA ORIGINAL) ---
+                    curso_sel = None
+                    with col_f3:
+                        # Aplica os filtros em cascata
+                        df_filtrado = df_up.copy()
+                        if campus_sel:
+                            df_filtrado = df_filtrado[df_filtrado['Campus'] == campus_sel]
+                        if tipo_sel:
+                            df_filtrado = df_filtrado[df_filtrado['Tipo de Curso'] == tipo_sel]
+                        
+                        # Carrega a lista usando a coluna original encontrada
+                        lista_cursos = sorted(df_filtrado[col_nome_real].astype(str).unique())
+                        
+                        # Exibe o selectbox com o label correto da coluna
+                        label_filtro = f"Selecionar {col_nome_real}"
+                        curso_sel = st.selectbox(label_filtro, [""] + lista_cursos)
+
+                    # --- EXIBIÇÃO E SELEÇÃO DO CICLO ---
+                    if curso_sel:
+                        # Filtra o DataFrame final
+                        df_final = df_up[df_up[col_nome_real] == curso_sel]
+                        
+                        # Reforça filtros de consistência
+                        if campus_sel: df_final = df_final[df_final['Campus'] == campus_sel]
+                        if tipo_sel: df_final = df_final[df_final['Tipo de Curso'] == tipo_sel]
+                        
+                        st.markdown("---")
+                        # Passa para a tabela de seleção
+                        linha_selecionada = interface_selecao_ciclo(df_final)
+                        
+                        if linha_selecionada is not None:
+                            exibir_calculadora_core(linha_selecionada)
+                else:
+                    st.error("⚠️ Não foi encontrada uma coluna contendo 'Nome' e 'Curso'. Verifique o cabeçalho da planilha.")
+                    st.write("Colunas identificadas:", list(cols_existentes))
+        
+        except Exception as e:
+            st.error("Erro ao processar o arquivo.")
+            st.error(e)
+            
 
 elif st.session_state['modo'] == 'manual':
     st.markdown("### ✏️ Simulação Manual")
