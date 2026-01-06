@@ -254,7 +254,7 @@ def interface_selecao_ciclo(df_curso):
 # =======================================================
 # 3. NÚCLEO DA CALCULADORA (UI REFATORADA - LAYOUT GRID)
 # =======================================================
-def exibir_calculadora_core(dados_linha=None):
+def exibir_calculadora_core(dados_linha=None, ano_default=2024):
     # --- Processamento inicial de dados (MANTIDO IGUAL) ---
     def_dic = get_val(dados_linha, 'DIC')
     def_dtc = get_val(dados_linha, 'DTC')
@@ -326,9 +326,14 @@ def exibir_calculadora_core(dados_linha=None):
         with col4_1:
             qtm = st.number_input("Matrículas Ativas (QTM)", min_value=0, value=val_qtm)
         with col4_2:
-            ano_atual = datetime.date.today().year
+            #ano_atual = datetime.date.today().year
             lista_anos = list(range(2020, 2031))
-            idx_ano = lista_anos.index(2024) if 2024 in lista_anos else 0
+
+            if ano_default in lista_anos:
+                idx_ano = lista_anos.index(ano_default)
+            else:
+                idx_ano = 0
+            
             ano_periodo = st.selectbox("Ano de Análise", lista_anos, index=idx_ano)
 
   
@@ -519,11 +524,85 @@ elif st.session_state['modo'] == 'excel':
                 idx = st.number_input("Selecione o número da linha para analisar:", 0, len(df_up)-1)
                 exibir_calculadora_core(df_up.iloc[idx])
 
+
 elif st.session_state['modo'] == 'manual':
     st.markdown("### ✏️ Simulação Manual")
-    st.info("Preencha os campos abaixo livremente para testar cenários hipotéticos.")
-    exibir_calculadora_core(None)
+    st.info("Utilize os filtros abaixo para carregar as características técnicas de um curso existente ou deixe em branco para preencher tudo manualmente.")
 
+    linha_simulacao = None
+    
+    # Container de Pré-preenchimento
+    with st.expander("📂 Carregar base de dados de curso existente", expanded=True):
+        try:
+            # Carrega dados para popular os selects
+            df = carregar_dados_gsheets()
+            
+            c_filtro1, c_filtro2, c_filtro3 = st.columns(3)
+            
+            with c_filtro1:
+                # 1. Filtro Tipo de Curso
+                lista_tipos = sorted(df['Tipo de Curso'].astype(str).unique())
+                tipo_sel = st.selectbox("Tipo de Curso", [""] + lista_tipos)
+            
+            with c_filtro2:
+                # 2. Filtro Tipo de Oferta (Aparece dinamicamente se for Técnico)
+                oferta_sel = None
+                if tipo_sel and "TECNICO" in tipo_sel.upper():
+                    # Filtra o DF pelo tipo para ver as ofertas disponíveis
+                    df_tipo = df[df['Tipo de Curso'] == tipo_sel]
+                    lista_ofertas = sorted(df_tipo['Tipo de Oferta'].astype(str).unique())
+                    oferta_sel = st.selectbox("Tipo de Oferta", [""] + lista_ofertas)
+                else:
+                    st.selectbox("Tipo de Oferta", ["N/A"], disabled=True)
+            
+# --- FILTRO 3: NOME DO CURSO (Cascata) ---
+            with c_filtro3:
+                lista_cursos = []
+                if tipo_sel:
+                    # Começa filtrando pelo tipo
+                    df_filtrado = df[df['Tipo de Curso'] == tipo_sel]
+                    
+                    # Se tiver oferta selecionada (caso dos técnicos), filtra também pela oferta
+                    if oferta_sel:
+                        df_filtrado = df_filtrado[df_filtrado['Tipo de Oferta'] == oferta_sel]
+                    
+                    lista_cursos = sorted(df_filtrado['Nome_Padronizado'].unique())
+                    curso_base_sel = st.selectbox("Nome do Curso", [""] + lista_cursos)
+                else:
+                    curso_base_sel = st.selectbox("Nome do Curso", [], disabled=True, placeholder="Selecione o Tipo primeiro")
+
+            # --- PREENCHIMENTO DOS DADOS ---
+            if curso_base_sel:
+                # Localiza a linha do curso selecionado (usamos o filtro completo para garantir unicidade)
+                # Filtra novamente para garantir que pegamos o curso com a oferta correta
+                df_final_busca = df[df['Nome_Padronizado'] == curso_base_sel]
+                if oferta_sel:
+                    df_final_busca = df_final_busca[df_final_busca['Tipo de Oferta'] == oferta_sel]
+                
+                # Pega a primeira ocorrência
+                linha_base = df_final_busca.iloc[0].copy()
+                
+                # --- APLICAÇÃO DAS REGRAS DE SIMULAÇÃO (IGUAL AO CÓDIGO ANTERIOR) ---
+                linha_base['DIC'] = datetime.date(2026, 2, 19)
+                linha_base['DTC'] = datetime.date(2026, 2, 19)
+                linha_base['QTM'] = 30 
+                linha_base['QTM1P'] = 30
+                if 'CHMC' in linha_base:
+                    linha_base['CHC'] = linha_base['CHMC']
+                
+                # Correção vital para simulação
+                linha_base['Apto'] = 'SIM' 
+
+                linha_simulacao = linha_base
+                st.success(f"**{curso_base_sel}**{f', oferta do tipo {oferta_sel}' if tipo_sel and 'TECNICO' in tipo_sel.upper() else ''}, peso do curso **{linha_base.get('PC')}**, carga horária na matriz **{linha_base.get('CHM', 0)}h**")
+
+        except Exception as e:
+            st.error("Não foi possível carregar a base de dados.")
+            # st.error(e) # Tire o comentário se precisar ver o erro técnico
+
+    # Exibe a calculadora (com dados pré-carregados ou vazia)
+    # Define o ano_default como 2026 conforme solicitado
+    exibir_calculadora_core(linha_simulacao, ano_default=2026)
 # Rodapé
 st.markdown("---")
 st.markdown("""
