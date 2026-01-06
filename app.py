@@ -242,7 +242,7 @@ def interface_selecao_ciclo(df_curso):
 
     # Container visual para destacar a seleção
     with st.container():
-        st.markdown("Selecione o Ciclo Específico")
+        st.markdown("Ciclo")
         indice_selecionado = st.selectbox(
             "Ciclos encontrados:",
             options=list(opcoes_map.keys()),
@@ -294,11 +294,11 @@ def exibir_calculadora_core(dados_linha=None):
         with col2_1:
             pc = st.number_input("Peso do Curso (PC)", min_value=0.0, value=val_pc, step=0.1, format="%.2f")
         with col2_2:
-            opt_fin = ["PRESENCIAL", "EAD FINANCIAMENTO EXTERNO", "EAD FINANCIAMENTO PRÓPRIO"]
+            opt_fin = ["PRESENCIAL", "EAD FINANCIAMENTO EXTERNO", "EAD PRÓPRIO"]
             try: idx_fin = opt_fin.index(val_finan) 
             except: 
-                if "PRÓPRIO" in str(val_finan).upper(): idx_fin = 2
-                elif "EXTERNO" in str(val_finan).upper(): idx_fin = 1
+                if "EAD FP" in str(val_finan).upper(): idx_fin = 2
+                elif "EAD" in str(val_finan).upper(): idx_fin = 1
                 else: idx_fin = 0
             tipo_financiamento = st.selectbox("Financiamento", opt_fin, index=idx_fin)
         with col2_3:
@@ -367,7 +367,7 @@ def exibir_calculadora_core(dados_linha=None):
         CMTD25 = 0
         
         if tipo_financiamento == "PRESENCIAL": MT = MP + BA
-        elif tipo_financiamento == "EAD FINANCIAMENTO PRÓPRIO": 
+        elif tipo_financiamento == "EAD PRÓPRIO": 
             CMTD80 = MP * 0.80
             MT = CMTD80
         elif tipo_financiamento == "EAD FINANCIAMENTO EXTERNO": 
@@ -429,9 +429,9 @@ def exibir_calculadora_core(dados_linha=None):
                     st.write("---")
                     st.write(f"**Curso EAD**")
                     st.write(f"CMTD25 (Fomento externo vale 25% da presencial): {CMTD25:.2f}")
-                elif tipo_financiamento == "EAD FINANCIAMENTO PRÓPRIO":
+                elif tipo_financiamento == "EAD PRÓPRIO":
                     st.write("---")
-                    st.write(f"Curso EAD")
+                    st.write(f"**Curso EAD**")
                     st.write(f"CMTD80 (Fomento próprio vale 80% da presencial): {CMTD80:.2f}")
 
 # =======================================================
@@ -466,24 +466,25 @@ st.write("") # Espaçamento
 
 if st.session_state['modo'] == 'iffar':
     st.markdown("## Matrículas do IFFarroupilha")
-    st.markdown("Dados da PNP Ano Base 2024 que foram usados pela MDO 2026")
+    st.markdown("##### Dados da PNP Ano Base 2024 que foram usados pela MDO 2026")
+    st.info("Clique e escolha o Campus, tipo de curso, nome do curso e qual ciclo deseja conferir os dados.")
     st.write("")
 
     try:
         df = carregar_dados_gsheets()
         
         # Filtros organizados em colunas
-        c1, c2, c3 = st.columns(3)
+        c1, c2 = st.columns(2)
         with c1:
             campus = st.selectbox("Campus", df['Unidade de Ensino'].unique(), format_func=formatar_nome)
             df_c = df[df['Unidade de Ensino'] == campus]
         with c2:
             tipo = st.selectbox("Tipo de Curso", df_c['Tipo de Curso'].unique(), format_func=formatar_nome)
             df_t = df_c[df_c['Tipo de Curso'] == tipo]
-        with c3:
-            lista_cursos = df_t['Nome_Padronizado'].unique()
-            curso_sel = st.selectbox("Curso", lista_cursos)
-            df_final = df_t[df_t['Nome_Padronizado'] == curso_sel]
+        #with c3:
+        lista_cursos = df_t['Nome_Padronizado'].unique()
+        curso_sel = st.selectbox("Curso", lista_cursos)
+        df_final = df_t[df_t['Nome_Padronizado'] == curso_sel]
 
         linha_selecionada = interface_selecao_ciclo(df_final)
         
