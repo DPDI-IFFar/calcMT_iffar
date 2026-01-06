@@ -2,16 +2,26 @@ import streamlit as st
 import pandas as pd
 import datetime
 import warnings
+import os
 from streamlit_gsheets import GSheetsConnection
+
 
 # =======================================================
 # 0. CONFIGURAÇÃO E ESTILOS (UX/UI IFFAR)
 # =======================================================
 st.set_page_config(
-    page_title="Calculadora Matrícula IFFar",
-    page_icon="🟢",
+    page_title="Calculadora Matrículas Totais",
+    page_icon="📊",
     layout="wide"
 )
+
+# Logo após as configurações iniciais e imports
+image_file = "banner2.png" # Seu arquivo novo
+
+if os.path.exists(image_file):
+    st.image(image_file, width="stretch") 
+else:
+    st.write("# Calculadora de Matrículas Totais do IFFar")
 
 # Silencia warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="pandas")
@@ -22,55 +32,74 @@ try:
 except ImportError:
     nomes_cursos_substituicoes = {}
 
-# --- CSS PERSONALIZADO (IDENTIDADE IFFAR) ---
 st.markdown("""
     <style>
-    /* Fontes e Cores Gerais */
-    @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;700&display=swap');
     
-    html, body, [class*="css"] {
-        font-family: 'Open Sans', sans-serif;
+    [data-testid="stAppViewContainer"] {
+        background-color: #5FD967; 
+        background-image: linear-gradient(135deg, #5FD967 0%, #1A7A6F 100%);
     }
 
-    /* Cabeçalho */
-    h1 { color: #1B5E20; font-weight: 700; margin-bottom: 0px; }
-    h2, h3 { color: #2E7D32; font-weight: 600; }
-    h4 { color: #388E3C; font-weight: 400; }
-
-    /* Botões Primários (Estilo IFFar) */
-    div.stButton > button:first-child {
-        background-color: #048775;
+    [data-testid="stHeader"] {
+        background-color: rgba(0,0,0,0); 
         color: white;
-        border-radius: 15px;
+    }
+    
+    
+    [data-testid="stToolbar"] {
+        right: 2rem;
+    }
+
+    
+    .block-container {
+        background-color: #FFFFFF;
+        padding: 3rem 3rem;     
+        border-radius: 20px;     
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        margin-top: 40px; 
+        max-width: 900px;
+    }
+
+    
+    h1, h2, h3, h4, p, span, div {
+        color: #333333;
+    }
+    
+    div.stButton > button:first-child {
+        background-color: #39A46C; !important
+        color: #FFFFFF; !important
+        border-radius: 12px;
         border: none;
-        font-weight: bold;
+        height: 55px;
+        font-weight: 600;
         transition: all 0.3s ease;
-        height: 70px;        
-        font-size: 24px;       
-        padding: 0px 0px;
-        width: 100%;
     }
+    
+    div.stButton > button:first-child p {
+        color: #FFFFFF !important;
+    }
+            
     div.stButton > button:first-child:hover {
-        background-color: #005F52; /* Verde mais escuro no hover */
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        background-color: #1a7a6f;
+        color: #FFFFFF !important;
+        border: none;
+        transform: scale(1.02);
     }
-    
-    /* Botões Secundários (Outline) para navegação inativa */
-    div.stButton > button.secondary-btn {
-        background-color: transparent;
-        color: #2E7D32;
-        border: 2px solid #2E7D32;
+            
+    div.stButton > button:first-child:active, 
+    div.stButton > button:first-child:focus {
+        background-color: #107347 !important;
+        color: #FFFFFF !important;
+        box-shadow: none;
     }
 
-    /* Cards e Containers */
-    [data-testid="stForm"] { border-radius: 10px; border: 1px solid #C8E6C9; }
-    .block-container { padding-top: 2rem; }
-
-    /* Inputs numéricos e de data */
-    input { color: #1B5E20; }
+    .block-container {
+        padding-top: 2rem;
+    }
     
-    /* Separador personalizado */
-    hr { margin: 2em 0; border: none; border-top: 2px solid #A5D6A7; }
+
+    footer {visibility: hidden;}
+    
     </style>
 """, unsafe_allow_html=True)
 
@@ -213,7 +242,7 @@ def interface_selecao_ciclo(df_curso):
 
     # Container visual para destacar a seleção
     with st.container():
-        st.markdown("##### 📌 Selecione o Ciclo Específico")
+        st.markdown("Selecione o Ciclo Específico")
         indice_selecionado = st.selectbox(
             "Ciclos encontrados:",
             options=list(opcoes_map.keys()),
@@ -248,13 +277,12 @@ def exibir_calculadora_core(dados_linha=None):
     
     # Agrupamento visual (Card)
     with st.container(border=True):
-        st.markdown("### 📝 Parâmetros do Cálculo")
+        st.markdown("#### 📝 Parâmetros do Cálculo")
         
         # Colunas para organizar melhor o espaço
         col_ciclo, col_metricas = st.columns(2, gap="large")
         
         with col_ciclo:
-            st.caption("⏱️ CICLO E CARGA HORÁRIA")
             DIC = st.date_input("Início do Ciclo (DIC)", val_dic, format="DD/MM/YYYY")
             DTC = st.date_input("Término do Ciclo (DTC)", val_dtc, format="DD/MM/YYYY")
             if DTC <= DIC: st.error("⚠️ Data de término deve ser maior que início.")
@@ -268,10 +296,10 @@ def exibir_calculadora_core(dados_linha=None):
             chm_calculado = calcular_chm(tipo_curso_val, tipo_oferta_val, chc, chmc)
             chm = st.number_input("CH Matriz (CHM)", min_value=0, value=int(chm_calculado))
             if dados_linha is not None: 
-                st.caption(f"ℹ️ Sugestão CHM: {chm_calculado}")
+                st.caption(f"ℹ️ CHM usada: {chm_calculado}")
 
         with col_metricas:
-            st.caption("⚖️ PESOS E MODALIDADE")
+            
             pc = st.number_input("Peso do Curso (PC)", min_value=0.0, value=val_pc, step=0.1, format="%.2f")
             
             # Radio button horizontal para economizar espaço vertical
@@ -397,31 +425,7 @@ def exibir_calculadora_core(dados_linha=None):
 # =======================================================
 # 4. LAYOUT PRINCIPAL (CABEÇALHO + NAVEGAÇÃO CENTRAL)
 # =======================================================
-
-import os
-# --- Configuração da Página (Opcional, mas recomendado para este layout) ---
-st.set_page_config(layout="centered")
-
-image_file = "banner.png"
-
-# 1. Verifica se a imagem existe para não quebrar o app 
-if not os.path.exists(image_file):
-    st.write("# Calculadora de Matrículas Totais do IFFar")
-    st.write("Houve um erro no carregamento, entre em contato com dpdi@iffarroupilha.edu.br para informar o problema")
-    st.stop()
-
-col_espaco_esq, col_centro, col_espaco_dir = st.columns([1, 8, 1])
-
-with col_centro:
-    st.image(
-        image_file,
-        width="stretch"
-    )
-
-    st.write("---")
-
 st.write("Esta ferramenta foi desenvolvida baseada na Portaria MEC nº 646, de 25 de agosto de 2022, que estabelece a metodologia da Matriz de Distribuição Orçamentária dos Institutos Federais. Os dados são calculados a partir das fórmulas da planilha da fase 4 que é recebida pelas instituições. Dessa maneira, é possível verificar quanto cada matrícula contribui no cálculo de matrículas totais, bem como simular outros cenários.")
-
 st.write("Selecione uma das opções para iniciar:")
 
 # --- MENU DE NAVEGAÇÃO CENTRALIZADO ---
@@ -429,45 +433,29 @@ col_nav1, col_nav2, col_nav3 = st.columns(3)
 
 with col_nav1:
     tipo_btn = "primary" if st.session_state['modo'] == 'iffar' else "secondary"
-    if st.button("Matrículas Totais do IFFar", type=tipo_btn, use_container_width=True):
+    if st.button("🔍 Matrículas Totais do IFFar", type=tipo_btn, use_container_width=True):
         set_modo('iffar')
 
 with col_nav2:
-    tipo_btn = "secondary" if st.session_state['modo'] == 'excel' else "secondary"
-    if st.button("Outros Institutos Federais", type=tipo_btn, use_container_width=True):
+    tipo_btn = "primary" if st.session_state['modo'] == 'excel' else "secondary"
+    if st.button("📂 Outros Institutos Federais", type=tipo_btn, use_container_width=True):
         set_modo('excel')
 
 with col_nav3:
     tipo_btn = "primary" if st.session_state['modo'] == 'manual' else "secondary"
-    if st.button("Simulador Manual", type=tipo_btn, use_container_width=True):
+    if st.button("✏️ Simulador Manual", type=tipo_btn, use_container_width=True):
         set_modo('manual')
 
 st.write("") # Espaçamento
-
-if st.session_state['modo'] is not None:
-    # Este texto aparecerá para QUALQUER opção selecionada
-    st.markdown("""
-        <div style="background-color: #f1f8f3; padding: 15px; border-radius: 8px; border-left: 5px solid #2E7D32; margin-bottom: 25px; animation: fadeIn 0.5s;">
-            <p style="margin:0; color: #1B5E20;">
-            <strong>Modo Selecionado.</strong> Utilize os campos abaixo para realizar a simulação conforme a metodologia da Portaria 646/2022.
-            </p>
-        </div>
-        <style>
-            @keyframes fadeIn {
-                0% { opacity: 0; }
-                100% { opacity: 1; }
-            }
-        </style>
-    """, unsafe_allow_html=True)
-
-
 
 # =======================================================
 # 5. RENDERIZAÇÃO DO CONTEÚDO (BASEADO NA ESCOLHA)
 # =======================================================
 
 if st.session_state['modo'] == 'iffar':
-    st.markdown("### Dados do IFFar na MDO 2026 (PNP Ano Base 2024)")
+    st.markdown("## Matrículas do IFFarroupilha")
+    st.markdown("Dados da PNP Ano Base 2024 que foram usados pela MDO 2026")
+    st.write("")
 
     try:
         df = carregar_dados_gsheets()
@@ -527,6 +515,6 @@ elif st.session_state['modo'] == 'manual':
 st.markdown("---")
 st.markdown("""
     <div style="text-align: center; color: #666; font-size: 0.8em;">
-        Desenvolvido para apoio à gestão orçamentária do IFFar | © 2024 Instituto Federal Farroupilha
+        © 2024 | Diretoria de Planejamento e Desenvolvimento Institucional do IFFarroupilha
     </div>
 """, unsafe_allow_html=True)
