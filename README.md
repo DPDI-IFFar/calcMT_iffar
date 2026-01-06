@@ -1,6 +1,6 @@
 # Calculadora de Matrícula Total - IFFar
 
-Esta ferramenta é um software institucional desenvolvido para apoiar o cálculo e a conferência da **Matrícula Total** dos cursos ofertados no Instituto Federal Farroupilha, seguindo rigorosamente a metodologia estabelecida na **Portaria MEC nº 646/2022**.
+Esta ferramenta é um software institucional desenvolvido para apoiar o cálculo e a conferência da **Matrícula Total** dos cursos ofertados no Instituto Federal Farroupilha, seguindo rigorosamente a metodologia estabelecida na **[Portaria MEC nº 646/](https://www.in.gov.br/web/dou/-/portaria-n-646-de-25-de-agosto-de-2022-425194865)**.
 
 O projeto foi construído em Python utilizando a biblioteca Streamlit, garantindo agilidade na simulação de cenários e transparência nas fórmulas aplicadas.
 

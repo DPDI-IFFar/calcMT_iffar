@@ -411,8 +411,7 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
                     st.write(f"**Curso EAD**")
                     st.write(f"CMTD80 (Fomento próprio vale 80% da presencial): {CMTD80:.2f}")
 
-
-st.write("Esta ferramenta foi desenvolvida baseada na Portaria MEC nº 646, de 25 de agosto de 2022, que estabelece a metodologia da Matriz de Distribuição Orçamentária dos Institutos Federais. Os dados são calculados a partir das fórmulas da planilha 'Fase 4 ', que é disponibilizada para os Institutos Federais. Assim, é possível verificar quanto cada matrícula contribui no cálculo de matrículas totais, bem como simular outros cenários.")
+st.write("Esta ferramenta foi desenvolvida baseada na [Portaria MEC nº 646, de 25 de agosto de 2022](https://www.in.gov.br/web/dou/-/portaria-n-646-de-25-de-agosto-de-2022-425194865), que estabelece a metodologia da Matriz de Distribuição Orçamentária dos Institutos Federais. Os dados são calculados a partir das fórmulas da planilha 'Fase 4', que é disponibilizada para os Institutos Federais. Assim, é possível verificar quanto cada matrícula contribui no cálculo de matrículas totais, bem como simular outros cenários.")
 st.write("Selecione uma das opções para iniciar:")
 
 col_nav1, col_nav2, col_nav3 = st.columns(3)
