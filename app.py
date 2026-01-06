@@ -21,7 +21,7 @@ image_file = "banner2.png" # Seu arquivo novo
 if os.path.exists(image_file):
     st.image(image_file, width="stretch") 
 else:
-    st.write("# Calculadora de Matrículas Totais do IFFar")
+    st.write("# Calculadora de Matrículas Totais")
 
 # Silencia warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="pandas")
@@ -252,10 +252,10 @@ def interface_selecao_ciclo(df_curso):
     return df_temp.loc[indice_selecionado]
 
 # =======================================================
-# 3. NÚCLEO DA CALCULADORA (UI MELHORADA, LÓGICA IDÊNTICA)
+# 3. NÚCLEO DA CALCULADORA (UI REFATORADA - LAYOUT GRID)
 # =======================================================
 def exibir_calculadora_core(dados_linha=None):
-    # Processamento inicial (preservado)
+    # --- Processamento inicial de dados (MANTIDO IGUAL) ---
     def_dic = get_val(dados_linha, 'DIC')
     def_dtc = get_val(dados_linha, 'DTC')
     val_dic = converter_para_data(def_dic) if def_dic else datetime.date.today()
@@ -272,61 +272,67 @@ def exibir_calculadora_core(dados_linha=None):
     tipo_curso_val = get_val(dados_linha, 'Tipo de Curso', '')
     tipo_oferta_val = get_val(dados_linha, 'Tipo de Oferta', '')
 
-    # --- UI DA CALCULADORA ---
+    # --- UI DA CALCULADORA (LAYOUT NOVO) ---
     st.divider()
     
-    # Agrupamento visual (Card)
+    # Início do Card Principal
     with st.container(border=True):
         st.markdown("#### 📝 Parâmetros do Cálculo")
         
-        # Colunas para organizar melhor o espaço
-        col_ciclo, col_metricas = st.columns(2, gap="large")
-        
-        with col_ciclo:
+        # --- LINHA 1: DATAS ---
+        col1_1, col1_2 = st.columns(2)
+        with col1_1:
             DIC = st.date_input("Início do Ciclo (DIC)", val_dic, format="DD/MM/YYYY")
+        with col1_2:
             DTC = st.date_input("Término do Ciclo (DTC)", val_dtc, format="DD/MM/YYYY")
-            if DTC <= DIC: st.error("⚠️ Data de término deve ser maior que início.")
-            
-            c_h1, c_h2 = st.columns(2)
-            with c_h1:
-                chc = st.number_input("CH Ciclo (CHC)", min_value=0, value=val_chc, step=1)
-            with c_h2:
-                chmc = st.number_input("CH Catálogo (CHMC)", min_value=0, value=val_chmc, step=10)
-            
-            chm_calculado = calcular_chm(tipo_curso_val, tipo_oferta_val, chc, chmc)
-            chm = st.number_input("CH Matriz (CHM)", min_value=0, value=int(chm_calculado))
-            if dados_linha is not None: 
-                st.caption(f"ℹ️ CHM usada: {chm_calculado}")
+        
+        if DTC <= DIC: 
+            st.error("⚠️ Data de término deve ser maior que início.")
 
-        with col_metricas:
-            
+        # --- LINHA 2: PESO, FINANCIAMENTO, AGRO ---
+        col2_1, col2_2, col2_3 = st.columns(3)
+        with col2_1:
             pc = st.number_input("Peso do Curso (PC)", min_value=0.0, value=val_pc, step=0.1, format="%.2f")
-            
-            # Radio button horizontal para economizar espaço vertical
-            agro_idx = 0 if is_agro_sim else 1
-            agropecuaria = st.radio("Curso Agropecuária?", ["Sim", "Não"], index=agro_idx, horizontal=True)
-            
+        with col2_2:
             opt_fin = ["PRESENCIAL", "EAD FINANCIAMENTO EXTERNO", "EAD FINANCIAMENTO PRÓPRIO"]
             try: idx_fin = opt_fin.index(val_finan) 
             except: 
                 if "PRÓPRIO" in str(val_finan).upper(): idx_fin = 2
                 elif "EXTERNO" in str(val_finan).upper(): idx_fin = 1
                 else: idx_fin = 0
-            
             tipo_financiamento = st.selectbox("Financiamento", opt_fin, index=idx_fin)
-            qtm = st.number_input("Matrículas Ativas (QTM)", min_value=0, value=val_qtm)
-
-        st.markdown("---")
-        st.caption("📅 PERÍODO DE REFERÊNCIA")
-        col_ano, col_btn = st.columns([1, 2])
-        with col_ano:
-            ano_periodo = st.selectbox("Ano de Análise", list(range(2020, 2031)), index=list(range(2020, 2031)).index(2024))
-        
-        with col_btn:
-            st.write("") # Espaçador
+        with col2_3:
+            agro_idx = 0 if is_agro_sim else 1
+            # Ajuste de layout vertical para alinhar com selectbox
             st.write("") 
-            # Botão largo e verde
-            btn_calcular = st.button("CALCULAR MATRÍCULA TOTAL", type="primary", use_container_width=True)
+            st.write("")
+            agropecuaria = st.radio("Curso Agropecuária?", ["Sim", "Não"], index=agro_idx, horizontal=True)
+
+        # --- LINHA 3: CARGAS HORÁRIAS ---
+        col3_1, col3_2, col3_3 = st.columns(3)
+        with col3_1:
+            chc = st.number_input("CH Ciclo (CHC)", min_value=0, value=val_chc, step=1)
+        with col3_2:
+            chmc = st.number_input("CH Catálogo (CHMC)", min_value=0, value=val_chmc, step=10)
+        with col3_3:
+            # Cálculo dinâmico para sugestão do CHM
+            chm_calculado = calcular_chm(tipo_curso_val, tipo_oferta_val, chc, chmc)
+            chm = st.number_input("CH Matriz (CHM)", min_value=0, value=int(chm_calculado))
+            if dados_linha is not None: 
+                st.caption(f"ℹ️ Sugerido: {chm_calculado}")
+
+        # --- LINHA 4: MATRÍCULAS E ANO ---
+        col4_1, col4_2 = st.columns(2)
+        with col4_1:
+            qtm = st.number_input("Matrículas Ativas (QTM)", min_value=0, value=val_qtm)
+        with col4_2:
+            ano_atual = datetime.date.today().year
+            lista_anos = list(range(2020, 2031))
+            idx_ano = lista_anos.index(2024) if 2024 in lista_anos else 0
+            ano_periodo = st.selectbox("Ano de Análise", lista_anos, index=idx_ano)
+
+  
+        btn_calcular = st.button("CALCULAR MATRÍCULA TOTAL", type="primary", use_container_width=True)
 
     # --- LÓGICA DE CÁLCULO (EXATAMENTE COMO FORNECIDO) ---
     if btn_calcular:
@@ -372,8 +378,6 @@ def exibir_calculadora_core(dados_linha=None):
         raw_apto = get_val(dados_linha, 'Apto', "SIM")
         is_jubilado = str(raw_apto).strip().upper() == "NÃO"
 
-        st.markdown("### 📊 Resultado da Simulação")
-
         if is_jubilado:
             # Caixa vermelha (Design aprimorado mas mantendo a mensagem)
             st.markdown(f"""
@@ -388,39 +392,47 @@ def exibir_calculadora_core(dados_linha=None):
             st.markdown(f"""
             <div style="border: 2px solid #2E7D32; border-radius: 12px; background-color: #E8F5E9; padding: 25px; text-align: center; margin: 20px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                 <span style="font-size: 3.5em; font-weight: 800; color: #2E7D32;">{MT:.2f}</span>
-                <br><strong style="color: #1B5E20; font-size: 1.2em; text-transform: uppercase;">Matrícula Total</strong>
+                <br><strong style="color: #1B5E20; font-size: 1.2em; text-transform: uppercase;">Matrícula(s) Total(is)</strong>
             </div>
             """, unsafe_allow_html=True)
             
             if qtm > 0: 
-                st.info(f"💡 **Fator Multiplicador:** Cada aluno físico neste ciclo gera **{MT / qtm:.2f}** matrícula(s) financeira(s).")
+                st.info(f"Cada matrícula neste ciclo gera **{MT / qtm:.2f}** matrícula(s) total(is).")
 
         # Detalhes técnicos organizados em Abas dentro do Expander
-        with st.expander("🔎 Ver Memória de Cálculo Detalhada"):
+        with st.expander("Cálculo Detalhado"):
             t1, t2 = st.tabs(["Variáveis de Tempo", "Fatores e Ponderação"])
             
             with t1:
-                st.write(f"**QTDC:** {QTDC} dias")
-                st.write(f"**CHMD:** {CHMD:.4f}")
-                st.write(f"**CHA:** {CHA:.2f}")
-                st.write(f"**FECH:** {FECH:.4f}")
+                st.write(f"**QTDC (Quantidade de Dias do Ciclo)**: {QTDC} dias")
+                st.write(f"**CHM (Carga Horária para Matriz):** {chm}")
+                st.write(f"**CHMD (Carga Horária Média Diária):** {CHMD:.2f}")
+                st.write(f"**CHA (Carga Horária Anualizada):** {CHA:.2f}")
+                st.write(f"**FECH (Fator de Equalização de Carga Horária):** {FECH:.4f}")
                 st.markdown("---")
-                st.caption("Dias Ativos por Período:")
-                c_d1, c_d2, c_d3 = st.columns(3)
-                with c_d1: st.write(f"DACP1: {DACP1}"); st.write(f"DACP4: {DACP4}")
-                with c_d2: st.write(f"DACP2: {DACP2}"); st.write(f"DACP5: {DACP5}")
-                with c_d3: st.write(f"DACP3: {DACP3}")
+                st.write("**Dias Ativos por Período (DACP):**")
+                #c_d1, c_d2, c_d3 = st.columns(3)
+                st.write(f"1 - começa antes do início do período e termina depois do final do período): {DACP1}")
+                st.write(f"2 - começa dentro do período e termina depois do final do período): {DACP2}")
+                st.write(f"3 - começa antes do início do período e termina antes do final do período): {DACP3}")
+                st.write(f"4 - começa depois do início do período e termina antes do final do período): {DACP4}")
+                st.write(f"5 - começa antes do início do período e termina antes do início do período): {DACP5}")
+
 
             with t2:
-                st.write(f"**FEDA:** {FEDA:.4f}")
-                st.write(f"**FECHDA:** {FECHDA:.4f}")
-                st.write(f"**MECHDA:** {MECHDA:.4f}")
+                st.write(f"**FEDA (Fator de Equalização de Dias Ativos):** {FEDA:.4f}")
+                st.write(f"**FECHDA (Fator de Equalização de Carga Horária e Dias Ativos):** {FECHDA:.4f}")
+                st.write(f"**MECHDA (Matrículas Equalizadas por Carga Horária e Dias Ativos):** {MECHDA:.4f}")
                 st.write(f"**Bônus Agro (BA):** {BA:.2f}")
                 
                 if tipo_financiamento == "EAD FINANCIAMENTO EXTERNO":
-                    st.write(f"**CMTD25:** {CMTD25:.2f}")
+                    st.write("---")
+                    st.write(f"**Curso EAD**")
+                    st.write(f"CMTD25 (Fomento externo vale 25% da presencial): {CMTD25:.2f}")
                 elif tipo_financiamento == "EAD FINANCIAMENTO PRÓPRIO":
-                    st.write(f"**CMTD80:** {CMTD80:.2f}")
+                    st.write("---")
+                    st.write(f"Curso EAD")
+                    st.write(f"CMTD80 (Fomento próprio vale 80% da presencial): {CMTD80:.2f}")
 
 # =======================================================
 # 4. LAYOUT PRINCIPAL (CABEÇALHO + NAVEGAÇÃO CENTRAL)
