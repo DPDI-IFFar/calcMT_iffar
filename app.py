@@ -6,27 +6,21 @@ import os
 from streamlit_gsheets import GSheetsConnection
 
 
-# =======================================================
-# 0. CONFIGURAÇÃO E ESTILOS (UX/UI IFFAR)
-# =======================================================
 st.set_page_config(
     page_title="Calculadora Matrículas Totais",
     page_icon="📊",
     layout="wide"
 )
 
-# Logo após as configurações iniciais e imports
-image_file = "banner2.png" # Seu arquivo novo
+image_file = "banner2.png"
 
 if os.path.exists(image_file):
     st.image(image_file, width="stretch") 
 else:
     st.write("# Calculadora de Matrículas Totais")
 
-# Silencia warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="pandas")
 
-# Importação condicional
 try:
     from correcoes_nomes import nomes_cursos_substituicoes
 except ImportError:
@@ -49,7 +43,6 @@ st.markdown("""
     [data-testid="stToolbar"] {
         right: 2rem;
     }
-
     
     .block-container {
         background-color: #FFFFFF;
@@ -59,8 +52,7 @@ st.markdown("""
         margin-top: 40px; 
         max-width: 900px;
     }
-
-    
+ 
     h1, h2, h3, h4, p, span, div {
         color: #333333;
     }
@@ -111,7 +103,7 @@ def set_modo(novo_modo):
     st.session_state['modo'] = novo_modo
 
 # =======================================================
-# 1. FUNÇÕES AUXILIARES E LÓGICA (MANTIDAS DO ORIGINAL)
+# 1. FUNÇÕES AUXILIARES E LÓGICA
 # =======================================================
 
 def formatar_nome(x):
@@ -204,15 +196,12 @@ def carregar_dados_excel(uploaded_file):
                     st.success(f"✅ Dados encontrados na aba: **{nome_aba}**")
                     return df
             except: continue
-        st.error("❌ Estrutura não encontrada. Envie a planilha Fase 4 correta.")
+        st.error("❌ Estrutura não encontrada. Envie a planilha Fase 4 da Matriz de Distribuição Orçamentária disponibilizada no sistema.")
         return None
     except Exception as e:
         st.error(f"Erro ao abrir arquivo: {e}")
         return None
 
-# =======================================================
-# 2. INTERFACE DE SELEÇÃO DE CICLO (LÓGICA PRESERVADA)
-# =======================================================
 def interface_selecao_ciclo(df_curso):
     if df_curso.empty:
         st.warning("⚠️ Nenhum dado encontrado para este filtro.")
@@ -240,7 +229,7 @@ def interface_selecao_ciclo(df_curso):
          st.warning("Nenhum ciclo com matrículas válidas encontrado.")
          return None
 
-    # Container visual para destacar a seleção
+
     with st.container():
         st.markdown("Ciclo")
         indice_selecionado = st.selectbox(
@@ -251,11 +240,8 @@ def interface_selecao_ciclo(df_curso):
         )
     return df_temp.loc[indice_selecionado]
 
-# =======================================================
-# 3. NÚCLEO DA CALCULADORA (UI REFATORADA - LAYOUT GRID)
-# =======================================================
+
 def exibir_calculadora_core(dados_linha=None, ano_default=2024):
-    # --- Processamento inicial de dados (MANTIDO IGUAL) ---
     def_dic = get_val(dados_linha, 'DIC')
     def_dtc = get_val(dados_linha, 'DTC')
     val_dic = converter_para_data(def_dic) if def_dic else datetime.date.today()
@@ -271,15 +257,10 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
     val_qtm = int(get_val(dados_linha, ['QTM1P', 'QTM'], 0))
     tipo_curso_val = get_val(dados_linha, 'Tipo de Curso', '')
     tipo_oferta_val = get_val(dados_linha, 'Tipo de Oferta', '')
-
-    # --- UI DA CALCULADORA (LAYOUT NOVO) ---
-    st.divider()
     
-    # Início do Card Principal
     with st.container(border=True):
-        st.markdown("#### 📝 Parâmetros do Cálculo")
+        st.markdown("#### Parâmetros do Cálculo")
         
-        # --- LINHA 1: DATAS ---
         col1_1, col1_2 = st.columns(2)
         with col1_1:
             DIC = st.date_input("Início do Ciclo (DIC)", val_dic, format="DD/MM/YYYY")
@@ -289,7 +270,7 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
         if DTC <= DIC: 
             st.error("⚠️ Data de término deve ser maior que início.")
 
-        # --- LINHA 2: PESO, FINANCIAMENTO, AGRO ---
+
         col2_1, col2_2, col2_3 = st.columns(3)
         with col2_1:
             pc = st.number_input("Peso do Curso (PC)", min_value=0.0, value=val_pc, step=0.1, format="%.2f")
@@ -303,12 +284,12 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
             tipo_financiamento = st.selectbox("Financiamento", opt_fin, index=idx_fin)
         with col2_3:
             agro_idx = 0 if is_agro_sim else 1
-            # Ajuste de layout vertical para alinhar com selectbox
+
             st.write("") 
             st.write("")
             agropecuaria = st.radio("Curso Agropecuária?", ["Sim", "Não"], index=agro_idx, horizontal=True)
 
-        # --- LINHA 3: CARGAS HORÁRIAS ---
+
         col3_1, col3_2, col3_3 = st.columns(3)
         with col3_1:
             chc = st.number_input("CH Ciclo (CHC)", min_value=0, value=val_chc, step=1)
@@ -319,27 +300,23 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
             chm_calculado = calcular_chm(tipo_curso_val, tipo_oferta_val, chc, chmc)
             chm = st.number_input("CH Matriz (CHM)", min_value=0, value=int(chm_calculado))
             if dados_linha is not None: 
-                st.caption(f"ℹ️ Sugerido: {chm_calculado}")
+                st.caption(f"ℹ️ Selecionado: {chm_calculado}")
 
-        # --- LINHA 4: MATRÍCULAS E ANO ---
         col4_1, col4_2 = st.columns(2)
         with col4_1:
-            qtm = st.number_input("Matrículas Ativas (QTM)", min_value=0, value=val_qtm)
+            qtm = st.number_input("Matrículas Atendidas (QTM)", min_value=0, value=val_qtm)
         with col4_2:
-            #ano_atual = datetime.date.today().year
-            lista_anos = list(range(2020, 2031))
 
+            lista_anos = list(range(2020, 2031))
             if ano_default in lista_anos:
                 idx_ano = lista_anos.index(ano_default)
             else:
                 idx_ano = 0
             
             ano_periodo = st.selectbox("Ano de Análise", lista_anos, index=idx_ano)
-
   
         btn_calcular = st.button("CALCULAR MATRÍCULA TOTAL", type="primary", use_container_width=True)
 
-    # --- LÓGICA DE CÁLCULO (EXATAMENTE COMO FORNECIDO) ---
     if btn_calcular:
         DIP = datetime.date(ano_periodo, 1, 1)
         DFP = datetime.date(ano_periodo, 12, 31)
@@ -384,16 +361,14 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
         is_jubilado = str(raw_apto).strip().upper() == "NÃO"
 
         if is_jubilado:
-            # Caixa vermelha (Design aprimorado mas mantendo a mensagem)
             st.markdown(f"""
             <div style="border: 2px solid #d32f2f; border-radius: 12px; background-color: #fdecea; padding: 25px; text-align: center; margin: 20px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                 <span style="font-size: 3em; font-weight: 800; color: #d32f2f;">0,00</span>
                 <br><strong style="color: #d32f2f; font-size: 1.2em;">CICLO JUBILADO</strong>
-                <p style="color: #555; margin-top: 10px;">(Mais de três anos após data prevista de término do ciclo)</p>
+                <p style="color: #555; margin-top: 10px;">Mais de três anos após data prevista de término do ciclo</p>
             </div>
             """, unsafe_allow_html=True)
         else:
-            # Caixa verde (Design IFFar)
             st.markdown(f"""
             <div style="border: 2px solid #2E7D32; border-radius: 12px; background-color: #E8F5E9; padding: 25px; text-align: center; margin: 20px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                 <span style="font-size: 3.5em; font-weight: 800; color: #2E7D32;">{MT:.2f}</span>
@@ -402,9 +377,8 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
             """, unsafe_allow_html=True)
             
             if qtm > 0: 
-                st.info(f"Cada matrícula neste ciclo gera **{MT / qtm:.2f}** matrícula(s) total(is).")
+                st.info(f"Cada matrícula neste ciclo gera **{MT / qtm:.2f}** matrícula(s) total(is) em {ano_periodo}.")
 
-        # Detalhes técnicos organizados em Abas dentro do Expander
         with st.expander("Cálculo Detalhado"):
             t1, t2 = st.tabs(["Variáveis de Tempo", "Fatores e Ponderação"])
             
@@ -416,13 +390,11 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
                 st.write(f"**FECH (Fator de Equalização de Carga Horária):** {FECH:.4f}")
                 st.markdown("---")
                 st.write("**Dias Ativos por Período (DACP):**")
-                #c_d1, c_d2, c_d3 = st.columns(3)
                 st.write(f"1 - começa antes do início do período e termina depois do final do período): {DACP1}")
                 st.write(f"2 - começa dentro do período e termina depois do final do período): {DACP2}")
                 st.write(f"3 - começa antes do início do período e termina antes do final do período): {DACP3}")
                 st.write(f"4 - começa depois do início do período e termina antes do final do período): {DACP4}")
                 st.write(f"5 - começa antes do início do período e termina antes do início do período): {DACP5}")
-
 
             with t2:
                 st.write(f"**FEDA (Fator de Equalização de Dias Ativos):** {FEDA:.4f}")
@@ -439,13 +411,10 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
                     st.write(f"**Curso EAD**")
                     st.write(f"CMTD80 (Fomento próprio vale 80% da presencial): {CMTD80:.2f}")
 
-# =======================================================
-# 4. LAYOUT PRINCIPAL (CABEÇALHO + NAVEGAÇÃO CENTRAL)
-# =======================================================
-st.write("Esta ferramenta foi desenvolvida baseada na Portaria MEC nº 646, de 25 de agosto de 2022, que estabelece a metodologia da Matriz de Distribuição Orçamentária dos Institutos Federais. Os dados são calculados a partir das fórmulas da planilha da fase 4 que é recebida pelas instituições. Dessa maneira, é possível verificar quanto cada matrícula contribui no cálculo de matrículas totais, bem como simular outros cenários.")
+
+st.write("Esta ferramenta foi desenvolvida baseada na Portaria MEC nº 646, de 25 de agosto de 2022, que estabelece a metodologia da Matriz de Distribuição Orçamentária dos Institutos Federais. Os dados são calculados a partir das fórmulas da planilha 'Fase 4 ', que é disponibilizada para os Institutos Federais. Assim, é possível verificar quanto cada matrícula contribui no cálculo de matrículas totais, bem como simular outros cenários.")
 st.write("Selecione uma das opções para iniciar:")
 
-# --- MENU DE NAVEGAÇÃO CENTRALIZADO ---
 col_nav1, col_nav2, col_nav3 = st.columns(3)
 
 with col_nav1:
@@ -465,26 +434,21 @@ with col_nav3:
 
 st.write("") # Espaçamento
 
-# =======================================================
-# 5. RENDERIZAÇÃO DO CONTEÚDO (BASEADO NA ESCOLHA)
-# =======================================================
 
 if st.session_state['modo'] == 'iffar':
     st.markdown("## Matrículas do IFFarroupilha")
     st.markdown("##### Dados da PNP Ano Base 2024 que foram usados pela MDO 2026")
-    st.info("Escolha o Campus, tipo de curso, nome do curso e qual ciclo deseja conferir os dados.")
+    st.info("Escolha um campus, tipo de curso, nome do curso e qual ciclo deseja conferir os dados.")
     st.write("")
 
     try:
         df = carregar_dados_gsheets()
-        
-        # Cria 3 colunas para o fluxo: Campus -> Tipo -> Curso
+
         c1, c2 = st.columns(2)
         
-        # --- 1. SELEÇÃO DO CAMPUS ---
         with c1:
             lista_campus = sorted(df['Unidade de Ensino'].unique().tolist())
-            # Adiciona opção vazia para forçar seleção
+
             campus_sel = st.selectbox(
                 "1. Campus", 
                 options=[""] + lista_campus, 
@@ -495,7 +459,6 @@ if st.session_state['modo'] == 'iffar':
         if campus_sel:
             df_c = df[df['Unidade de Ensino'] == campus_sel]
             
-            # --- 2. SELEÇÃO DO TIPO DE CURSO ---
             with c2:
                 lista_tipos = sorted(df_c['Tipo de Curso'].unique().tolist())
                 tipo_sel = st.selectbox(
@@ -504,7 +467,7 @@ if st.session_state['modo'] == 'iffar':
                     format_func=lambda x: "Selecione..." if x == "" else formatar_nome(x)
                 )
             
-            # Só prossegue se um tipo foi selecionado
+            # Só prossegue se um tipo de curso foi selecionado
             if tipo_sel:
                 df_t = df_c[df_c['Tipo de Curso'] == tipo_sel]
                 
@@ -525,12 +488,12 @@ if st.session_state['modo'] == 'iffar':
                         exibir_calculadora_core(linha_selecionada)
 
     except Exception as e:
-        st.error("Erro ao conectar com a base de dados (Google Sheets).")
+        st.error("Erro ao conectar com a base de dados (Google Sheets). Informe para dpdi@iffarroupilha.edu.br")
         st.exception(e)
 
 elif st.session_state['modo'] == 'excel':
     st.markdown("### 📂 Análise de Arquivo (Outros IFs)")
-    st.info("Faça upload da planilha da **Fase 4 da Matriz de Distribuição Orçamentária** (.xlsx) para conferência.")
+    st.info("Faça upload da planilha **Fase 4 da Matriz de Distribuição Orçamentária** (.xlsx) para conferência.")
     
     arq = st.file_uploader("Selecione o arquivo", type=["xlsx"])
     
@@ -548,7 +511,6 @@ elif st.session_state['modo'] == 'excel':
 
                 cols_existentes = df_up.columns
                 
-                # Procura qual coluna é o NOME DO CURSO (mantendo a original)
                 col_nome_real = None
                 # Lista de tentativas comuns
                 tentativas = [c for c in cols_existentes if 'NOME' in str(c).upper() and 'CURSO' in str(c).upper()]
@@ -568,7 +530,6 @@ elif st.session_state['modo'] == 'excel':
                     
                     col_f1, col_f2, col_f3 = st.columns(3)
 
-                    # --- FILTRO 1: CAMPUS ---
                     campus_sel = None
                     with col_f1:
                         if tem_campus:
@@ -577,7 +538,6 @@ elif st.session_state['modo'] == 'excel':
                         else:
                             st.warning("Coluna 'Campus'/Unidade não identificada.")
 
-                    # --- FILTRO 2: TIPO DE CURSO ---
                     tipo_sel = None
                     with col_f2:
                         if tem_tipo:
@@ -588,7 +548,6 @@ elif st.session_state['modo'] == 'excel':
                         else:
                             st.warning("Coluna 'Tipo de Curso' não identificada.")
 
-                    # --- FILTRO 3: NOME DO CURSO (USANDO COLUNA ORIGINAL) ---
                     curso_sel = None
                     with col_f3:
                         # Aplica os filtros em cascata
@@ -605,9 +564,9 @@ elif st.session_state['modo'] == 'excel':
                         label_filtro = f"Selecionar {col_nome_real}"
                         curso_sel = st.selectbox(label_filtro, [""] + lista_cursos)
 
-                    # --- EXIBIÇÃO E SELEÇÃO DO CICLO ---
+
                     if curso_sel:
-                        # Filtra o DataFrame final
+
                         df_final = df_up[df_up[col_nome_real] == curso_sel]
                         
                         # Reforça filtros de consistência
@@ -631,7 +590,7 @@ elif st.session_state['modo'] == 'excel':
 
 elif st.session_state['modo'] == 'manual':
     st.markdown("### ✏️ Simulação Manual")
-    st.info("Utilize os filtros abaixo para carregar as características técnicas de um curso existente ou deixe em branco para preencher tudo manualmente.")
+    st.info("Utilize os filtros abaixo para carregar peso e carga horária de um curso existente ou deixe em branco para preencher tudo manualmente.")
 
     linha_simulacao = None
     
@@ -659,7 +618,6 @@ elif st.session_state['modo'] == 'manual':
                 else:
                     st.selectbox("Tipo de Oferta", ["N/A"], disabled=True)
             
-# --- FILTRO 3: NOME DO CURSO (Cascata) ---
             with c_filtro3:
                 lista_cursos = []
                 if tipo_sel:
@@ -675,18 +633,14 @@ elif st.session_state['modo'] == 'manual':
                 else:
                     curso_base_sel = st.selectbox("Nome do Curso", [], disabled=True, placeholder="Selecione o Tipo primeiro")
 
-            # --- PREENCHIMENTO DOS DADOS ---
             if curso_base_sel:
-                # Localiza a linha do curso selecionado (usamos o filtro completo para garantir unicidade)
-                # Filtra novamente para garantir que pegamos o curso com a oferta correta
+                
                 df_final_busca = df[df['Nome_Padronizado'] == curso_base_sel]
                 if oferta_sel:
                     df_final_busca = df_final_busca[df_final_busca['Tipo de Oferta'] == oferta_sel]
                 
-                # Pega a primeira ocorrência
                 linha_base = df_final_busca.iloc[0].copy()
                 
-                # --- APLICAÇÃO DAS REGRAS DE SIMULAÇÃO (IGUAL AO CÓDIGO ANTERIOR) ---
                 linha_base['DIC'] = datetime.date(2026, 2, 19)
                 linha_base['DTC'] = datetime.date(2026, 2, 19)
                 linha_base['QTM'] = 30 
@@ -694,23 +648,18 @@ elif st.session_state['modo'] == 'manual':
                 if 'CHMC' in linha_base:
                     linha_base['CHC'] = linha_base['CHMC']
                 
-                # Correção vital para simulação
                 linha_base['Apto'] = 'SIM' 
 
                 linha_simulacao = linha_base
                 st.success(f"**{curso_base_sel}**{f', oferta do tipo {oferta_sel}' if tipo_sel and 'TECNICO' in tipo_sel.upper() else ''}, peso do curso **{linha_base.get('PC')}**, carga horária na matriz **{linha_base.get('CHM', 0)}h**")
 
         except Exception as e:
-            st.error("Não foi possível carregar a base de dados.")
-            # st.error(e) # Tire o comentário se precisar ver o erro técnico
-
-    # Exibe a calculadora (com dados pré-carregados ou vazia)
-    # Define o ano_default como 2026 conforme solicitado
+            st.error("Não foi possível carregar a base de dados. Simule os valores digitando manualmente.")
     exibir_calculadora_core(linha_simulacao, ano_default=2026)
-# Rodapé
-st.markdown("---")
+
+
 st.markdown("""
     <div style="text-align: center; color: #666; font-size: 0.8em;">
-        © 2024 | Diretoria de Planejamento e Desenvolvimento Institucional do IFFarroupilha
+        © 2025 | Diretoria de Planejamento e Desenvolvimento Institucional do IFFarroupilha - dpdi@iffarroupilha.edu.br
     </div>
 """, unsafe_allow_html=True)
