@@ -383,9 +383,31 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
         DACP4 = (DTC - DIC).days + 1 if (DIC >= DIP and DTC <= DFP) else 0
         DACP5 = ((DFP - DIP).days + 1) / 2 if (DIC < DIP and DTC < DIP) else 0
 
-        denominador = (DFP - DIP).days + 1
-        FEDA = (DACP1 + DACP2 + DACP3 + DACP4 + DACP5) / \
-            denominador if denominador > 0 else 0
+        # === AJUSTE DE LÓGICA DO FEDA (PLANILHA FASE 4 VS PORTARIA) ===
+        soma_dacp = DACP1 + DACP2 + DACP3 + DACP4 + DACP5
+        dias_no_ano_analise = (DFP - DIP).days + 1
+
+        # Lógica aplicada na Planilha da Fase 4:
+        # Se o curso tem duração menor ou igual a 365 dias, o denominador é a própria duração do curso.
+        # Isso faz com que o FEDA seja 1.0, ignorando a proporcionalidade anual exigida na Portaria.
+        if QTDC <= 365:
+            denominador_aplicado = QTDC
+            st.warning(
+                f"⚠️ **Aviso de Metodologia:** Este ciclo possui duração de **{QTDC} dias** (inferior ou igual a 365). "
+                "Para alinhar com os resultados da **Planilha da Fase 4**, o sistema aplicou um ajuste no cálculo do FEDA "
+                "usando a duração do ciclo como denominador, em vez dos dias do ano civil. "
+                "**Isso diverge do texto literal da Portaria nº 646/2022**, mas reflete como o orçamento está sendo distribuído na prática."
+            )
+        else:
+            denominador_aplicado = dias_no_ano_analise
+
+        FEDA = soma_dacp / denominador_aplicado if denominador_aplicado > 0 else 0
+        # ==============================================================
+
+        # denominador = (DFP - DIP).days + 1
+        # FEDA = (DACP1 + DACP2 + DACP3 + DACP4 + DACP5) / \
+        #    denominador if denominador > 0 else 0
+
         FECHDA = FECH * FEDA
 
         if DACP5 == 0:
