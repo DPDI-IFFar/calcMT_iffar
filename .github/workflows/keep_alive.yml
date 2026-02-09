@@ -1,14 +1,25 @@
-name: Manter App Acordado
+name: Manter App Acordado (Real Browser)
 on:
   schedule:
-    # Roda a cada 6 horas (pode ajustar conforme necessário)
-    - cron: '0 */6 * * *'
-  workflow_dispatch: # Permite que você rode manualmente pelo botão no GitHub
+    - cron: '0 */6 * * *' # Roda a cada 6 horas
+  workflow_dispatch:
 
 jobs:
   ping_app:
     runs-on: ubuntu-latest
     steps:
-      - name: Acessar URL do Streamlit
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Instalar dependências
         run: |
-          curl -I https://iffarcalcmatriculatotal.streamlit.app/
+          pip install playwright
+          playwright install chromium --with-deps
+
+      - name: Executar visita ao App
+        run: python keep_alive_script.py
