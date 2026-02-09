@@ -1,0 +1,14 @@
+name: Manter App Acordado
+on:
+  schedule:
+    # Roda a cada 6 horas (pode ajustar conforme necessário)
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # Permite que você rode manualmente pelo botão no GitHub
+
+jobs:
+  ping_app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acessar URL do Streamlit
+        run: |
+          curl -I https://iffarcalcmatriculatotal.streamlit.app/
