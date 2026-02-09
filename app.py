@@ -5,6 +5,7 @@ import warnings
 import os
 from streamlit_gsheets import GSheetsConnection
 
+#...
 
 st.set_page_config(
     page_title="Calculadora Matrículas Totais",
