@@ -1,6 +1,6 @@
 # Calculadora de Matrícula Total - IFFar
 
-Esta ferramenta é um software institucional desenvolvido para apoiar o cálculo e a conferência da **Matrícula Total** dos cursos ofertados no Instituto Federal Farroupilha, seguindo rigorosamente a metodologia estabelecida na **[Portaria MEC nº 646/](https://www.in.gov.br/web/dou/-/portaria-n-646-de-25-de-agosto-de-2022-425194865)**.
+Esta ferramenta é um software institucional desenvolvido para apoiar o cálculo e a conferência da **Matrícula Total** dos cursos ofertados no Instituto Federal Farroupilha, seguindo rigorosamente a metodologia estabelecida na **[Portaria MEC nº 243/2026](https://www.in.gov.br/web/dou/-/portaria-mec-n-243-de-10-de-marco-de-2026-692098706)**, que revogou e substituiu a antiga Portaria MEC nº 646/2022.
 
 O projeto foi construído em Python utilizando a biblioteca Streamlit, garantindo agilidade na simulação de cenários e transparência nas fórmulas aplicadas.
 
@@ -25,7 +25,7 @@ O projeto visa:
 
 ## ⚠️ Importante
 
-> **Natureza da Ferramenta:** > Os cálculos realizados por esta aplicação seguem as fórmulas da Portaria MEC nº 646/2022 e utilizam a lógica das planilhas da Fase 4 da Distribuição Orçamentária. No entanto, os resultados são **simulações**.  
+> **Natureza da Ferramenta:** > Os cálculos realizados por esta aplicação seguem as fórmulas da Portaria MEC nº 243/2026 (que revogou a Portaria MEC nº 646/2022) e utilizam a lógica das planilhas da Fase 4 da Distribuição Orçamentária. No entanto, os resultados são **simulações**.  
 > Eles servem para conferência e planejamento, mas **não substituem os resultados oficiais** publicados pelo MEC ou pela Plataforma Nilo Peçanha, visto que as bases de dados oficiais podem sofrer alterações.
 
 
@@ -64,7 +64,8 @@ O projeto utiliza boas práticas de desenvolvimento de dados com a seguinte estr
 
 ## ⚖️ Referência Legal
 
-* **Portaria MEC nº 646, de 25 de agosto de 2022:** Institui a metodologia para o cálculo dos indicadores de gestão das Instituições da Rede Federal de EPCT.
+* **[Portaria MEC nº 243, de 10 de março de 2026](https://www.in.gov.br/web/dou/-/portaria-mec-n-243-de-10-de-marco-de-2026-692098706):** Institui a Matriz de Distribuição Orçamentária e a metodologia para o cálculo dos indicadores de gestão das Instituições da Rede Federal de EPCT.
+* Esta portaria **revogou** a Portaria MEC nº 646, de 25 de agosto de 2022, mantendo a mesma metodologia de cálculo da Matrícula Total e acrescentando a modalidade EaD "Cursos on-line MOOC" (8%).
 
 
 
@@ -82,7 +83,7 @@ Para fins de transparência, o algoritmo segue este fluxo:
 8.  **MECHDA (Matrículas Equalizadas):** `FECHDA * Quantidade de Matrículas (QTM)`.
 9.  **MP (Matrícula Ponderada):** `MECHDA * Peso do Curso`.
 10. **BA (Bônus Agro):** Se Agropecuária, `MP * 0,5`.
-11. **MT (Matrícula Total):** `MP + BA` (com redutores aplicados para EaD se necessário).
+11. **MT (Matrícula Total):** `MP + BA` para Presencial. Para EaD, aplica-se um redutor sobre `MP` conforme a modalidade: **80%** (Financiamento Próprio), **25%** (Financiamento Externo) ou **8%** (Cursos on-line MOOC).
 
 
 
