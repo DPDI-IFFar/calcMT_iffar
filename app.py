@@ -280,7 +280,7 @@ st.markdown("""
 <div class="iffar-hero">
     <div class="iffar-hero-inner">
         <h1>Calculadora de Matrículas Totais do IFFarroupilha</h1>
-        <p>Simula o cálculo do indicador que serve de base à distribuição orçamentária entre os Institutos Federais, conforme a <a href="https://www.in.gov.br/web/dou/-/portaria-n-646-de-25-de-agosto-de-2022-425194865" target="_blank">Portaria MEC nº 646/2022</a>.</p>
+        <p>Simula o cálculo do indicador que serve de base à distribuição orçamentária entre os Institutos Federais, conforme a <a href="https://www.in.gov.br/web/dou/-/portaria-mec-n-243-de-10-de-marco-de-2026-692098706" target="_blank">Portaria MEC nº 243/2026</a>, que revogou e substituiu a antiga Portaria MEC nº 646/2022.</p>
     </div>
 </div>
 <div class="iffar-cta-section">
@@ -519,7 +519,7 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
                 "Peso do Curso (PC)", min_value=0.0, value=val_pc, step=0.1, format="%.2f")
         with col2_2:
             opt_fin = ["PRESENCIAL",
-                       "EAD FINANCIAMENTO EXTERNO", "EAD PRÓPRIO"]
+                       "EAD FINANCIAMENTO EXTERNO", "EAD PRÓPRIO", "EAD MOOC"]
             try:
                 idx_fin = opt_fin.index(val_finan)
             except:
@@ -605,7 +605,8 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
                 f"⚠️ **Aviso de Metodologia:** Este ciclo possui duração de **{QTDC} dias** (inferior ou igual a 365). "
                 "Para alinhar com os resultados da **Planilha da Fase 4**, o sistema aplicou um ajuste no cálculo do FEDA "
                 "usando a duração do ciclo como denominador, em vez dos dias do ano civil. "
-                "**Isso diverge do texto literal da Portaria nº 646/2022**, mas reflete como o orçamento está sendo distribuído na prática."
+                "**Isso diverge do texto literal da Portaria nº 243/2026** (que reproduz, neste ponto, a mesma redação da revogada Portaria nº 646/2022), "
+                "mas reflete como o orçamento está sendo distribuído na prática."
             )
         else:
             denominador_aplicado = dias_no_ano_analise
@@ -632,6 +633,7 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
         MT = 0
         CMTD80 = 0
         CMTD25 = 0
+        CMTM08 = 0
 
         if tipo_financiamento == "PRESENCIAL":
             MT = MP + BA
@@ -641,6 +643,9 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
         elif tipo_financiamento == "EAD FINANCIAMENTO EXTERNO":
             CMTD25 = MP * 0.25
             MT = CMTD25
+        elif tipo_financiamento == "EAD MOOC":
+            CMTM08 = MP * 0.08
+            MT = CMTM08
 
         # Verificação Apto/Jubilado
         raw_apto = get_val(dados_linha, 'Apto', "SIM")
@@ -709,6 +714,11 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
                     st.write(f"**Curso EAD**")
                     st.write(
                         f"CMTD80 (Fomento próprio vale 80% da presencial): {CMTD80:.2f}")
+                elif tipo_financiamento == "EAD MOOC":
+                    st.write("---")
+                    st.write(f"**Curso MOOC**")
+                    st.write(
+                        f"CMTM08 (Curso on-line MOOC vale 8% da presencial): {CMTM08:.2f}")
 
 
 if st.session_state['modo'] == 'iffar':
