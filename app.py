@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import datetime
 import warnings
-import os
 from streamlit_gsheets import GSheetsConnection
 
 #...
@@ -13,13 +12,6 @@ st.set_page_config(
     layout="wide"
 )
 
-image_file = "banner2.png"
-
-if os.path.exists(image_file):
-    st.image(image_file, use_container_width=True)
-else:
-    st.write("# Calculadora de Matrículas Totais")
-
 warnings.filterwarnings("ignore", category=UserWarning, module="pandas")
 
 try:
@@ -27,37 +19,203 @@ try:
 except ImportError:
     nomes_cursos_substituicoes = {}
 
+# Gerenciamento de Estado para Navegação
+if 'modo' not in st.session_state:
+    st.session_state['modo'] = None
+
+_modo_url = st.query_params.get('modo')
+if _modo_url in ('iffar', 'excel', 'manual'):
+    st.session_state['modo'] = _modo_url
+
+
 st.markdown("""
     <style>
-    
+    @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+    html, body {
+        background: oklch(0.95 0.006 95);
+        overflow-x: hidden;
+    }
+
     [data-testid="stAppViewContainer"] {
-        background-color: #5FD967; 
-        background-image: linear-gradient(135deg, #5FD967 0%, #1A7A6F 100%);
+        background-color: oklch(0.95 0.006 95);
     }
 
     [data-testid="stHeader"] {
-        background-color: rgba(0,0,0,0); 
-        color: white;
+        background-color: rgba(0,0,0,0);
     }
-    
-    
-    [data-testid="stToolbar"] {
-        right: 2rem;
-    }
-    
+
     .block-container {
+        max-width: 1400px;
+        padding: 0 88px 3rem 88px;
+        margin-top: 0;
+    }
+
+    h1, h2, h3, h4, p, span, div, label {
+        font-family: 'IBM Plex Sans', sans-serif;
+    }
+
+    footer {visibility: hidden;}
+
+    /* ---------- HERO ---------- */
+    .iffar-hero {
+        background: oklch(0.26 0.09 155);
+        position: relative;
+        left: 50%;
+        right: 50%;
+        width: 100vw;
+        margin-left: -50vw;
+        margin-right: -50vw;
+    }
+    .iffar-hero-inner {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 64px 88px 56px;
+    }
+    .iffar-hero h1 {
+        font-family: 'Archivo', sans-serif;
+        font-weight: 800;
+        font-size: 52px;
+        line-height: 1.05;
+        color: #fff !important;
+        margin: 0 0 16px 0;
+        max-width: 720px;
+    }
+    .iffar-hero p {
+        font-family: 'IBM Plex Sans', sans-serif;
+        font-size: 16px;
+        line-height: 1.6;
+        color: oklch(0.88 0.02 155) !important;
+        max-width: 560px;
+        margin: 0;
+    }
+    .iffar-hero p a {
+        color: #fff !important;
+        font-weight: 600;
+        text-decoration: underline;
+    }
+
+    /* ---------- CTA SECTION ---------- */
+    .iffar-cta-section {
+        background-image:
+            repeating-linear-gradient(0deg, oklch(0.86 0.02 155 / .6) 0 1px, transparent 1px 32px),
+            repeating-linear-gradient(90deg, oklch(0.86 0.02 155 / .6) 0 1px, transparent 1px 32px);
+        position: relative;
+        left: 50%;
+        right: 50%;
+        width: 100vw;
+        margin-left: -50vw;
+        margin-right: -50vw;
+        padding: 44px 0 64px;
+    }
+    .iffar-cta-section-inner {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 88px;
+    }
+    .cta-row {
+        display: flex;
+        gap: 20px;
+    }
+    .cta-card {
+        position: relative;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 26px 24px;
+        border-radius: 6px;
+        text-decoration: none !important;
+        min-height: 150px;
+        transition: filter 0.15s ease, transform 0.15s ease;
+    }
+    .cta-card:hover {
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+    }
+    .cta-primary {
+        flex: 1.3;
+        background: oklch(0.26 0.09 155);
+        color: #fff !important;
+        padding: 28px 26px;
+    }
+    .cta-secondary {
+        background: oklch(0.4 0.1 155);
+        color: #fff !important;
+    }
+    .cta-tertiary {
+        background: oklch(0.97 0.006 95);
+        border: 1.5px solid oklch(0.4 0.08 155);
+        color: oklch(0.22 0.03 155) !important;
+    }
+
+    .cta-card .cta-title { font-weight: 700; margin: 0; }
+    .cta-primary .cta-title { font-size: 19px; color: #fff !important; }
+    .cta-secondary .cta-title { font-size: 17px; font-weight: 600; color: #fff !important; }
+    .cta-tertiary .cta-title { font-size: 16.5px; font-weight: 600; color: oklch(0.22 0.03 155) !important; }
+
+    .cta-card .cta-desc { font-size: 13.5px; margin-top: 6px; }
+    .cta-primary .cta-desc, .cta-secondary .cta-desc { opacity: .82; color: #fff !important; }
+    .cta-tertiary .cta-desc { color: oklch(0.4 0.02 155) !important; font-size: 13px; }
+
+    .cta-card .cta-arrow {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .cta-primary .cta-arrow { color: #fff !important; }
+    .cta-secondary .cta-arrow { color: #fff !important; font-size: 12.5px; font-weight: 500; }
+    .cta-tertiary .cta-arrow { color: oklch(0.32 0.09 155) !important; font-size: 12.5px; font-weight: 500; }
+
+    /* ---------- FOOTER ---------- */
+    .site-footer {
+        background-color: #EFEEEA;
+        border-top: 1px solid oklch(0.86 0.02 155 / .6);
+        position: relative;
+        left: 50%;
+        right: 50%;
+        width: 100vw;
+        margin-left: -50vw;
+        margin-right: -50vw;
+        margin-top: 56px;
+        text-align: center;
+    }
+    .site-footer-inner {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 32px 88px 40px;
+    }
+    .site-footer p {
+        font-size: 13px;
+        line-height: 1.6;
+        color: oklch(0.4 0.02 155) !important;
+        max-width: 720px;
+        margin: 0 auto 8px;
+    }
+    .site-footer p:last-child {
+        margin-bottom: 0;
+        font-size: 12px;
+    }
+    .site-footer a {
+        color: oklch(0.32 0.09 155) !important;
+        text-decoration: underline;
+    }
+
+    /* ---------- BORDERED CONTAINERS & EXPANDERS ---------- */
+    [data-testid="stVerticalBlockBorderWrapper"]:has(> .st-key-parametros-calculo) {
         background-color: #FFFFFF;
-        padding: 3rem 3rem;     
-        border-radius: 20px;     
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        margin-top: 40px; 
-        max-width: 900px;
     }
- 
-    h1, h2, h3, h4, p, span, div {
-        color: #333333;
+    .st-key-parametros-calculo {
+        background-color: #FFFFFF;
+        border-radius: 12px;
     }
-    
+    div[data-testid="stExpander"] details,
+    div[data-testid="stExpander"] summary {
+        background-color: #FFFFFF;
+    }
+
+    /* ---------- CALCULATOR BUTTON ---------- */
     div.stButton > button:first-child {
         background-color: #39A46C; !important
         color: #FFFFFF; !important
@@ -67,42 +225,92 @@ st.markdown("""
         font-weight: 600;
         transition: all 0.3s ease;
     }
-    
+
     div.stButton > button:first-child p {
         color: #FFFFFF !important;
     }
-            
+
     div.stButton > button:first-child:hover {
         background-color: #1a7a6f;
         color: #FFFFFF !important;
         border: none;
         transform: scale(1.02);
     }
-            
-    div.stButton > button:first-child:active, 
+
+    div.stButton > button:first-child:active,
     div.stButton > button:first-child:focus {
         background-color: #107347 !important;
         color: #FFFFFF !important;
         box-shadow: none;
     }
 
-    .block-container {
-        padding-top: 2rem;
-    }
-    
+    /* ---------- MOBILE ---------- */
+    @media (max-width: 680px) {
+        .block-container { padding: 0 22px 2rem 22px; }
 
-    footer {visibility: hidden;}
-    
+        .iffar-hero-inner { padding: 36px 22px 30px; }
+        .iffar-hero h1 { font-size: 26px; line-height: 1.15; }
+        .iffar-hero p { font-size: 13px; line-height: 1.55; }
+
+        .iffar-cta-section { padding: 24px 0 60px; }
+        .iffar-cta-section-inner { padding: 0 22px; }
+        .cta-row { flex-direction: column; gap: 12px; }
+        .cta-card {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            min-height: auto;
+            gap: 10px;
+            padding: 18px 20px !important;
+        }
+        .cta-primary .cta-title { font-size: 16px; }
+        .cta-secondary .cta-title { font-size: 14.5px; }
+        .cta-tertiary .cta-title { font-size: 14px; }
+        .cta-card .cta-desc { font-size: 12px; margin-top: 2px; }
+        .cta-tertiary .cta-desc { display: none; }
+        .cta-card .cta-arrow-label { display: none; }
+
+        .site-footer-inner { padding: 24px 22px 32px; }
+    }
+
     </style>
 """, unsafe_allow_html=True)
 
-# Gerenciamento de Estado para Navegação
-if 'modo' not in st.session_state:
-    st.session_state['modo'] = None
-
-
-def set_modo(novo_modo):
-    st.session_state['modo'] = novo_modo
+st.markdown("""
+<div class="iffar-hero">
+    <div class="iffar-hero-inner">
+        <h1>Calculadora de Matrículas Totais do IFFarroupilha</h1>
+        <p>Simula o cálculo do indicador que serve de base à distribuição orçamentária entre os Institutos Federais, conforme a <a href="https://www.in.gov.br/web/dou/-/portaria-n-646-de-25-de-agosto-de-2022-425194865" target="_blank">Portaria MEC nº 646/2022</a>.</p>
+    </div>
+</div>
+<div class="iffar-cta-section">
+    <div class="iffar-cta-section-inner">
+    <div class="cta-row">
+        <a class="cta-card cta-primary" href="?modo=iffar" target="_self">
+            <div class="cta-text">
+                <div class="cta-title">Matrículas Totais do IFFar</div>
+                <div class="cta-desc">Dados oficiais calculados por curso e campus</div>
+            </div>
+            <div class="cta-arrow"><span class="cta-arrow-label">ABRIR </span>→</div>
+        </a>
+        <a class="cta-card cta-secondary" href="?modo=excel" target="_self">
+            <div class="cta-text">
+                <div class="cta-title">Outros Institutos Federais</div>
+                <div class="cta-desc">Envie o arquivo da fase 4 e simule outros cenários</div>
+            </div>
+            <div class="cta-arrow"><span class="cta-arrow-label">ABRIR </span>→</div>
+        </a>
+        <a class="cta-card cta-tertiary" href="?modo=manual" target="_self">
+            <div class="cta-text">
+                <div class="cta-title">Simulador Manual</div>
+                <div class="cta-desc">Monte seu próprio cenário e teste os parâmetros</div>
+            </div>
+            <div class="cta-arrow"><span class="cta-arrow-label">ABRIR </span>→</div>
+        </a>
+    </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # =======================================================
 # 1. FUNÇÕES AUXILIARES E LÓGICA
@@ -291,7 +499,7 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
     tipo_curso_val = get_val(dados_linha, 'Tipo de Curso', '')
     tipo_oferta_val = get_val(dados_linha, 'Tipo de Oferta', '')
 
-    with st.container(border=True):
+    with st.container(border=True, key="parametros-calculo"):
         st.markdown("#### Parâmetros do Cálculo")
 
         col1_1, col1_2 = st.columns(2)
@@ -501,29 +709,6 @@ def exibir_calculadora_core(dados_linha=None, ano_default=2024):
                     st.write(f"**Curso EAD**")
                     st.write(
                         f"CMTD80 (Fomento próprio vale 80% da presencial): {CMTD80:.2f}")
-
-
-st.write("Esta ferramenta foi desenvolvida baseada na [Portaria MEC nº 646, de 25 de agosto de 2022](https://www.in.gov.br/web/dou/-/portaria-n-646-de-25-de-agosto-de-2022-425194865), que estabelece a metodologia da Matriz de Distribuição Orçamentária dos Institutos Federais. Os dados são calculados a partir das fórmulas da planilha 'Fase 4', que é disponibilizada para os Institutos Federais. Assim, é possível verificar quanto cada matrícula contribui no cálculo de matrículas totais, bem como simular outros cenários.")
-st.write("Selecione uma das opções para iniciar:")
-
-col_nav1, col_nav2, col_nav3 = st.columns(3)
-
-with col_nav1:
-    tipo_btn = "primary" if st.session_state['modo'] == 'iffar' else "secondary"
-    if st.button("🔍 Matrículas Totais do IFFar", type=tipo_btn, use_container_width=True):
-        set_modo('iffar')
-
-with col_nav2:
-    tipo_btn = "primary" if st.session_state['modo'] == 'excel' else "secondary"
-    if st.button("📂 Outros Institutos Federais", type=tipo_btn, use_container_width=True):
-        set_modo('excel')
-
-with col_nav3:
-    tipo_btn = "primary" if st.session_state['modo'] == 'manual' else "secondary"
-    if st.button("✏️ Simulador Manual", type=tipo_btn, use_container_width=True):
-        set_modo('manual')
-
-st.write("")  # Espaçamento
 
 
 if st.session_state['modo'] == 'iffar':
@@ -779,7 +964,10 @@ elif st.session_state['modo'] == 'manual':
 
 
 st.markdown("""
-    <div style="text-align: center; color: #666; font-size: 0.8em;">
-        © 2025 | Diretoria de Planejamento e Desenvolvimento Institucional do IFFarroupilha - dpdi@iffarroupilha.edu.br
+<div class="site-footer">
+    <div class="site-footer-inner">
+        <p>Os dados são calculados a partir das fórmulas da planilha 'Fase 4', disponibilizada para os Institutos Federais, permitindo verificar quanto cada matrícula contribui no cálculo de matrículas totais e simular outros cenários.</p>
+        <p>© 2025 | Diretoria de Planejamento e Desenvolvimento Institucional do IFFarroupilha — <a href="mailto:dpdi@iffarroupilha.edu.br">dpdi@iffarroupilha.edu.br</a></p>
     </div>
+</div>
 """, unsafe_allow_html=True)
